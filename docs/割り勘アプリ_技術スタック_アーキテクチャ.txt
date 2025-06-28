@@ -1,0 +1,36 @@
+# 割り勘アプリ
+
+
+# ディレクトリ構成イメージ
+
+warikan_app/
+├── backend/           # バックエンド（Laravel）
+├── frontend/          # フロントエンド（Next.js）
+├── docker-compose.yml # Docker構成ファイル（コンテナ定義）
+├── .gitignore
+├── README.md
+└── その他（必要に応じた設定ファイルなど）
+
+
+backend/
+├── app/
+├── bootstrap/
+├── config/
+├── database/
+├── public/
+├── routes/
+├── storage/
+├── tests/
+├── .env
+├── composer.json
+└── artisan
+
+
+frontend/
+├── components/
+├── pages/
+├── public/
+├── styles/
+├── tsconfig.json
+├── package.json
+└── .env
