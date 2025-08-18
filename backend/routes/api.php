@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AuthController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -9,4 +10,16 @@ Route::get('/user', function (Request $request) {
 
 Route::get('/example', function () {
     return ['message' => 'API通信成功'];
+});
+
+// 認証関連のルート
+Route::prefix('auth')->group(function () {
+    Route::post('/guest-login', [AuthController::class, 'guestLogin']);
+    Route::post('/oauth-login', [AuthController::class, 'oauthLogin']);
+    
+    // 認証が必要なルート
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/logout', [AuthController::class, 'logout']);
+        Route::get('/me', [AuthController::class, 'me']);
+    });
 });

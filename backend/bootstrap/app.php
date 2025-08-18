@@ -12,7 +12,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        //
+        $middleware->api([
+            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+        ]);
+        
+        $middleware->alias([
+            'auth.customer' => \App\Http\Middleware\AuthenticateCustomer::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

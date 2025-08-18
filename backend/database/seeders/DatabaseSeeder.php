@@ -19,5 +19,10 @@ class DatabaseSeeder extends Seeder
             'name' => 'Test User',
             'email' => 'test@example.com',
         ]);
+
+        // 認証システムのテストデータを作成
+        $this->call([
+            AuthSeeder::class,
+        ]);
     }
 }
