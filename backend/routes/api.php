@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ProjectController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -22,4 +23,13 @@ Route::prefix('auth')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/me', [AuthController::class, 'me']);
     });
+});
+
+// プロジェクトCRUD（要認証）
+Route::middleware('auth:sanctum')->prefix('projects')->group(function () {
+    Route::get('/', [ProjectController::class, 'index']);
+    Route::post('/', [ProjectController::class, 'store']);
+    Route::get('/{projectId}', [ProjectController::class, 'show']);
+    Route::put('/{projectId}', [ProjectController::class, 'update']);
+    Route::delete('/{projectId}', [ProjectController::class, 'destroy']);
 });

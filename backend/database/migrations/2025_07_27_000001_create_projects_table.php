@@ -1,5 +1,4 @@
 <?php
-<?php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -14,7 +13,7 @@ return new class extends Migration
             $table->foreignId('customer_id')->constrained('customers')->comment('顧客ID');
             $table->string('project_name')->comment('プロジェクト名');
             $table->text('description')->nullable()->comment('プロジェクトの説明');
-            $table->enum('project_status')->comment('プロジェクトステータス');
+            $table->string('project_status', 32)->default('draft')->comment('プロジェクトステータス');
             $table->foreignId('split_method_id')->nullable()->constrained('customer_split_methods')->comment('割り勘方法ID');
             $table->boolean('del_flg')->default(false)->comment('削除フラグ');
             $table->timestamps();

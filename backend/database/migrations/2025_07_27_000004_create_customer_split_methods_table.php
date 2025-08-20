@@ -1,5 +1,4 @@
 <?php
-<?php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -12,7 +11,7 @@ return new class extends Migration
         Schema::create('customer_split_methods', function (Blueprint $table) {
             $table->id('split_method_id')->comment('割り勘方法ID');
             $table->text('description')->nullable()->comment('割り勘方法の説明');
-            $table->enum('template_type')->comment('テンプレートの種類');
+            $table->string('template_type')->comment('テンプレートの種類');
             $table->foreignId('customer_id')->constrained('customers')->comment('顧客ID');
             $table->boolean('del_flg')->default(false)->comment('削除フラグ');
             $table->timestamps();
