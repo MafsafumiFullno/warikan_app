@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\CustomerSplitMethod;
 use App\Models\Project;
+use App\Services\Split\EqualSplitStrategy;
+use App\Services\Split\SplitService;
+use App\Services\Split\WeightedSplitStrategy;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -40,7 +43,7 @@ class ProjectController extends Controller
     }
 
     /**
-     * 作成
+     * プロジェクト作成
      */
     public function store(Request $request): JsonResponse
     {
@@ -77,7 +80,7 @@ class ProjectController extends Controller
     }
 
     /**
-     * 詳細取得
+     * プロジェクト詳細取得
      */
     public function show(Request $request, int $projectId): JsonResponse
     {
@@ -96,7 +99,7 @@ class ProjectController extends Controller
     }
 
     /**
-     * 更新
+     * プロジェクト更新
      */
     public function update(Request $request, int $projectId): JsonResponse
     {
@@ -136,7 +139,7 @@ class ProjectController extends Controller
     }
 
     /**
-     * 論理削除
+     * プロジェクト論理削除
      */
     public function destroy(Request $request, int $projectId): JsonResponse
     {
@@ -155,6 +158,48 @@ class ProjectController extends Controller
         $project->save();
 
         return response()->json(['message' => '削除しました。']);
+    }
+
+    /**
+     * 精算計算
+     * - split_type: 'equal' | 'weighted'
+     * - weights: { customer_id: weight }
+     */
+    public function settlement(Request $request, int $projectId): JsonResponse
+    {
+        $customer = $request->user();
+
+        $project = Project::where('project_id', $projectId)
+            ->where('customer_id', $customer->customer_id)
+            ->where('del_flg', false)
+            ->first();
+
+        if (!$project) {
+            return response()->json(['message' => 'プロジェクトが見つかりません。'], 404);
+        }
+
+        $validated = $request->validate([
+            'split_type' => ['required', Rule::in(['equal', 'weighted'])],
+            'weights' => ['nullable', 'array'],
+            'weights.*' => ['numeric', 'min:0'],
+        ]);
+
+        $service = new SplitService();
+
+        if ($validated['split_type'] === 'equal') {
+            $strategy = new EqualSplitStrategy();
+            $result = $service->calculateForProject($projectId, $strategy);
+        } else {
+            $strategy = new WeightedSplitStrategy();
+            // weights は customer_id をキーにした配列を想定
+            $weights = [];
+            foreach (($validated['weights'] ?? []) as $key => $value) {
+                $weights[(int) $key] = (float) $value;
+            }
+            $result = $service->calculateForProject($projectId, $strategy, ['weights' => $weights]);
+        }
+
+        return response()->json($result);
     }
 }
 

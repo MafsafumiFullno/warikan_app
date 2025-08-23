@@ -32,4 +32,5 @@ Route::middleware('auth:sanctum')->prefix('projects')->group(function () {
     Route::get('/{projectId}', [ProjectController::class, 'show']);
     Route::put('/{projectId}', [ProjectController::class, 'update']);
     Route::delete('/{projectId}', [ProjectController::class, 'destroy']);
+    Route::post('/{projectId}/settlement', [ProjectController::class, 'settlement']);
 });
