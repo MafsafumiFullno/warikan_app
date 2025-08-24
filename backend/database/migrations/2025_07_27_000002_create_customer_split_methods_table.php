@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id('split_method_id')->comment('割り勘方法ID');
             $table->text('description')->nullable()->comment('割り勘方法の説明');
             $table->string('template_type')->comment('テンプレートの種類');
-            $table->foreignId('customer_id')->constrained('customers')->comment('顧客ID');
+            $table->foreignId('customer_id')->constrained('customers', 'customer_id')->comment('顧客ID');
             $table->boolean('del_flg')->default(false)->comment('削除フラグ');
             $table->timestamps();
 

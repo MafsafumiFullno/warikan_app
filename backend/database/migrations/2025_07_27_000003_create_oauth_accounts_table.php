@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('oauth_accounts', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('customer_id')->constrained('customers')->comment('顧客ID');
+            $table->foreignId('customer_id')->constrained('customers', 'customer_id')->comment('顧客ID');
             $table->string('provider_name')->comment('OAuthプロバイダー名');
             $table->string('provider_user_id')->comment('プロバイダー側ユーザーID');
             $table->string('access_token')->nullable()->comment('アクセストークン');

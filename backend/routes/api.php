@@ -13,6 +13,11 @@ Route::get('/example', function () {
     return ['message' => 'API通信成功'];
 });
 
+// CSRFトークン取得用エンドポイント
+Route::get('/csrf-token', function () {
+    return response()->json(['csrf_token' => csrf_token()]);
+});
+
 // 認証関連のルート
 Route::prefix('auth')->group(function () {
     Route::post('/guest-login', [AuthController::class, 'guestLogin']);

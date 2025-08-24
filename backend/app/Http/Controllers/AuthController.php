@@ -7,6 +7,7 @@ use App\Models\OAuthAccount;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
@@ -48,23 +49,26 @@ class AuthController extends Controller
      */
     public function oauthLogin(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'provider_name' => 'required|string',
-            'provider_user_id' => 'required|string',
-            'access_token' => 'required|string',
-            'refresh_token' => 'nullable|string',
-            'token_expired_date' => 'nullable|date',
-            'email' => 'nullable|email',
-            'first_name' => 'nullable|string',
-            'last_name' => 'nullable|string',
-        ]);
+        try {
+            Log::info('OAuthログイン開始', $request->all());
+            
+            $validator = Validator::make($request->all(), [
+                'provider_name' => 'required|string',
+                'provider_user_id' => 'required|string',
+                'access_token' => 'required|string',
+                'refresh_token' => 'nullable|string',
+                'token_expired_date' => 'nullable|date',
+                'email' => 'nullable|email',
+                'first_name' => 'nullable|string',
+                'last_name' => 'nullable|string',
+            ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'バリデーションエラー',
-                'errors' => $validator->errors()
-            ], 422);
-        }
+            if ($validator->fails()) {
+                return response()->json([
+                    'message' => 'バリデーションエラー',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
 
         // 既存のOAuthアカウントを確認
         $oauthAccount = OAuthAccount::where('provider_name', $request->provider_name)
@@ -103,12 +107,25 @@ class AuthController extends Controller
 
         $token = $customer->createToken('oauth-token')->plainTextToken;
 
+        Log::info('OAuthログイン成功', ['customer_id' => $customer->customer_id]);
+
         return response()->json([
             'message' => 'OAuthログイン成功',
             'customer' => $customer,
             'token' => $token,
             'token_type' => 'Bearer'
         ], 200);
+        } catch (\Exception $e) {
+            Log::error('OAuthログインエラー', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'message' => 'OAuthログインに失敗しました',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
