@@ -9,6 +9,7 @@ use App\Services\Split\SplitService;
 use App\Services\Split\WeightedSplitStrategy;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 
 class ProjectController extends Controller
@@ -18,28 +19,54 @@ class ProjectController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $customer = $request->user();
+        try {
+            $customer = $request->user();
 
-        $query = Project::query()
-            ->where('customer_id', $customer->customer_id)
-            ->where('del_flg', false)
-            ->orderByDesc('created_at');
+            $query = Project::query()
+                ->where('customer_id', $customer->customer_id)
+                ->where('del_flg', false)
+                ->orderByDesc('created_at');
 
-        if ($request->filled('project_status')) {
-            $query->where('project_status', $request->string('project_status'));
+            // ステータスフィルター
+            if ($request->filled('project_status')) {
+                $query->where('project_status', $request->string('project_status'));
+            }
+
+            // キーワード検索
+            if ($request->filled('q')) {
+                $keyword = $request->string('q');
+                $query->where(function ($q) use ($keyword) {
+                    $q->where('project_name', 'like', "%{$keyword}%")
+                      ->orWhere('description', 'like', "%{$keyword}%");
+                });
+            }
+
+            // ページネーション（デフォルト20件）
+            $perPage = $request->get('per_page', 20);
+            $projects = $query->paginate($perPage);
+
+            return response()->json([
+                'projects' => $projects->items(),
+                'pagination' => [
+                    'current_page' => $projects->currentPage(),
+                    'last_page' => $projects->lastPage(),
+                    'per_page' => $projects->perPage(),
+                    'total' => $projects->total(),
+                    'from' => $projects->firstItem(),
+                    'to' => $projects->lastItem(),
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('プロジェクト一覧取得エラー: ' . $e->getMessage(), [
+                'customer_id' => $request->user()?->customer_id,
+                'request' => $request->all()
+            ]);
+            
+            return response()->json([
+                'message' => 'プロジェクト一覧の取得に失敗しました。',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
         }
-
-        if ($request->filled('q')) {
-            $keyword = $request->string('q');
-            $query->where(function ($q) use ($keyword) {
-                $q->where('project_name', 'like', "%{$keyword}%")
-                  ->orWhere('description', 'like', "%{$keyword}%");
-            });
-        }
-
-        $projects = $query->get();
-
-        return response()->json(['projects' => $projects]);
     }
 
     /**

@@ -31,7 +31,7 @@ Route::prefix('auth')->group(function () {
 });
 
 // プロジェクトCRUD（要認証）
-Route::middleware('auth:sanctum')->prefix('projects')->group(function () {
+Route::middleware(['auth:sanctum', 'auth.customer'])->prefix('projects')->group(function () {
     Route::get('/', [ProjectController::class, 'index']);
     Route::post('/', [ProjectController::class, 'store']);
     Route::get('/{projectId}', [ProjectController::class, 'show']);
