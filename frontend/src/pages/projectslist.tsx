@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
-import Link from "next/link";
+import Link from 'next/link';
+import AuthGuard from '@/components/AuthGuard';
+import Layout from '@/components/Layout';
 import { apiFetch } from "../lib/api";
 
 interface Project {
@@ -34,6 +36,20 @@ export default function ProjectsList() {
     
     useEffect(() => {
         fetchProjects(currentPage);
+    }, [currentPage]);
+
+    // ページが表示されるたびにプロジェクト一覧を更新
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                fetchProjects(currentPage);
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
     }, [currentPage]);
 
     const fetchProjects = async (page: number = 1) => {
@@ -106,12 +122,29 @@ export default function ProjectsList() {
     }
     
     return (
-        <div className="min-h-screen bg-gray-50 py-8">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900">プロジェクト一覧</h1>
-                    <p className="mt-2 text-gray-600">登録されているプロジェクトの一覧です</p>
-                </div>
+        <AuthGuard>
+            <Layout title="プロジェクト一覧" showProjectsButton={true}>
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="mb-8 flex items-center justify-between">
+                        <div>
+                            <h1 className="text-3xl font-bold text-gray-900">プロジェクト一覧</h1>
+                            <p className="mt-2 text-gray-600">登録されているプロジェクトの一覧です</p>
+                        </div>
+                        <div className="flex space-x-3">
+                            <button
+                                onClick={() => fetchProjects(currentPage)}
+                                className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md transition-colors"
+                                title="一覧を更新"
+                            >
+                                🔄 更新
+                            </button>
+                            <Link href="/projects/create">
+                                <button className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition-colors">
+                                    + 新しいプロジェクト
+                                </button>
+                            </Link>
+                        </div>
+                    </div>
 
                 {projects.length === 0 ? (
                     <div className="text-center py-12">
@@ -129,11 +162,11 @@ export default function ProjectsList() {
                             <div key={project.project_id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200">
                                 <div className="p-6">
                                     <div className="flex items-start justify-between mb-4">
-                                        <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">
-                                            <Link href={`/projects/${project.project_id}`} className="hover:text-blue-600 transition-colors">
-                                                {project.project_name}
-                                            </Link>
-                                        </h3>
+                            <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">
+                              <Link href={`/projects/${project.project_id}`} className="hover:text-blue-600 transition-colors">
+                                {project.project_name}
+                              </Link>
+                            </h3>
                                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(project.project_status)}`}>
                                             {getStatusLabel(project.project_status)}
                                         </span>
@@ -206,7 +239,8 @@ export default function ProjectsList() {
                         {pagination.from} - {pagination.to} / {pagination.total} 件
                     </div>
                 )}
-            </div>
-        </div>
+                </div>
+            </Layout>
+        </AuthGuard>
     );
 }

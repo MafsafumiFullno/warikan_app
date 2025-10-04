@@ -74,14 +74,20 @@ class ProjectController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
-        $customer = $request->user();
+        try {
+            Log::info('プロジェクト作成リクエスト', ['request_data' => $request->all()]);
+            
+            $customer = $request->user();
+            Log::info('顧客情報', ['customer_id' => $customer->customer_id]);
 
-        $validated = $request->validate([
-            'project_name' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-            'project_status' => ['nullable', 'string', Rule::in(['draft', 'active', 'completed', 'archived'])],
-            'split_method_id' => ['nullable', 'integer'],
-        ]);
+            $validated = $request->validate([
+                'project_name' => ['required', 'string', 'max:255'],
+                'description' => ['nullable', 'string'],
+                'project_status' => ['nullable', 'string', Rule::in(['draft', 'active', 'completed', 'archived'])],
+                'split_method_id' => ['nullable', 'integer'],
+            ]);
+            
+            Log::info('バリデーション完了', ['validated_data' => $validated]);
 
         if (isset($validated['split_method_id'])) {
             $exists = CustomerSplitMethod::where('split_method_id', $validated['split_method_id'])
@@ -94,16 +100,31 @@ class ProjectController extends Controller
             }
         }
 
-        $project = Project::create([
-            'customer_id' => $customer->customer_id,
-            'project_name' => $validated['project_name'],
-            'description' => $validated['description'] ?? null,
-            'project_status' => $validated['project_status'] ?? 'draft',
-            'split_method_id' => $validated['split_method_id'] ?? null,
-            'del_flg' => false,
-        ]);
+            $project = Project::create([
+                'customer_id' => $customer->customer_id,
+                'project_name' => $validated['project_name'],
+                'description' => $validated['description'] ?? null,
+                'project_status' => $validated['project_status'] ?? 'draft',
+                'split_method_id' => $validated['split_method_id'] ?? null,
+                'del_flg' => false,
+            ]);
 
-        return response()->json(['project' => $project], 201);
+            Log::info('プロジェクト作成完了', ['project_id' => $project->project_id]);
+
+            return response()->json(['project' => $project], 201);
+
+        } catch (\Exception $e) {
+            Log::error('プロジェクト作成エラー', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->all()
+            ]);
+
+            return response()->json([
+                'message' => 'プロジェクトの作成に失敗しました。',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
     }
 
     /**

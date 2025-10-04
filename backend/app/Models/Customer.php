@@ -19,10 +19,12 @@ class Customer extends Authenticatable
         'last_name',
         'nick_name',
         'email',
+        'password',
         'del_flg',
     ];
 
     protected $hidden = [
+        'password',
         'remember_token',
     ];
 

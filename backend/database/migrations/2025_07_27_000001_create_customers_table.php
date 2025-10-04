@@ -15,6 +15,7 @@ return new class extends Migration
             $table->string('last_name')->nullable()->comment('姓');
             $table->string('nick_name')->nullable()->comment('ニックネーム');
             $table->string('email')->unique()->nullable()->comment('メールアドレス');
+            $table->string('password')->nullable()->comment('パスワードハッシュ');
             $table->boolean('del_flg')->default(false)->comment('削除フラグ');
             $table->timestamps();
         });

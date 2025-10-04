@@ -44,6 +44,12 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
     try {
       detail = await res.json();
     } catch {}
+    console.error('API Error:', {
+      status: res.status,
+      statusText: res.statusText,
+      url: `${API_BASE_URL}${path}`,
+      detail
+    });
     throw new Error(detail?.message || `API Error: ${res.status}`);
   }
 

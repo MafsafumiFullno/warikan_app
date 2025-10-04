@@ -19,16 +19,8 @@ type AuthState = {
 
 type AuthContextType = AuthState & {
   guestLogin: (nickName: string) => Promise<void>;
-  oauthLogin: (payload: {
-    provider_name: string;
-    provider_user_id: string;
-    access_token: string;
-    refresh_token?: string;
-    token_expired_date?: string;
-    email?: string;
-    first_name?: string;
-    last_name?: string;
-  }) => Promise<void>;
+  register: (payload: { email: string; password: string; first_name?: string; last_name?: string; nick_name?: string }) => Promise<void>;
+  login: (payload: { email: string; password: string }) => Promise<void>;
   logout: () => Promise<void>;
   refreshMe: () => Promise<void>;
 };
@@ -53,13 +45,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setError(null);
     setLoading(true);
     try {
+      const payload = nickName.trim() ? { nick_name: nickName.trim() } : { nick_name: 'ゲストユーザー' };
+      console.log('ゲストログインリクエスト:', payload);
+      
       const res = await apiFetch<{ customer: Customer; token: string }>(`/api/auth/guest-login`, {
         method: 'POST',
-        body: JSON.stringify({ nick_name: nickName }),
+        body: JSON.stringify(payload),
       });
+      
+      console.log('ゲストログインレスポンス:', res);
       setCustomer(res.customer);
       saveToken(res.token);
     } catch (e: any) {
+      console.error('ゲストログインエラー:', e);
       setError(e.message || 'ログインに失敗しました');
       throw e;
     } finally {
@@ -67,18 +65,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [saveToken]);
 
-  const oauthLogin = useCallback(async (payload: any) => {
+  const register = useCallback(async (payload: { email: string; password: string; first_name?: string; last_name?: string; nick_name?: string }) => {
     setError(null);
     setLoading(true);
     try {
-      const res = await apiFetch<{ customer: Customer; token: string }>(`/api/auth/oauth-login`, {
+      const res = await apiFetch<{ customer: Customer; token: string }>(`/api/auth/register`, {
         method: 'POST',
         body: JSON.stringify(payload),
       });
       setCustomer(res.customer);
       saveToken(res.token);
     } catch (e: any) {
-      setError(e.message || 'OAuthログインに失敗しました');
+      setError(e.message || '登録に失敗しました');
+      throw e;
+    } finally {
+      setLoading(false);
+    }
+  }, [saveToken]);
+
+  const login = useCallback(async (payload: { email: string; password: string }) => {
+    setError(null);
+    setLoading(true);
+    try {
+      const res = await apiFetch<{ customer: Customer; token: string }>(`/api/auth/login`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      setCustomer(res.customer);
+      saveToken(res.token);
+    } catch (e: any) {
+      setError(e.message || 'ログインに失敗しました');
       throw e;
     } finally {
       setLoading(false);
@@ -125,8 +141,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<AuthContextType>(() => ({
     customer, token, loading, error,
-    guestLogin, oauthLogin, logout, refreshMe,
-  }), [customer, token, loading, error, guestLogin, oauthLogin, logout, refreshMe]);
+    guestLogin, register, login, logout, refreshMe,
+  }), [customer, token, loading, error, guestLogin, register, login, logout, refreshMe]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

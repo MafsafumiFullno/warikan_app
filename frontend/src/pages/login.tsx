@@ -1,58 +1,141 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { guestLogin, oauthLogin, loading, error } = useAuth();
-  const [nickName, setNickName] = useState('');
+  const { guestLogin, login, loading, error } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
-  const [providerName, setProviderName] = useState('google');
-  const [providerUserId, setProviderUserId] = useState('sample_user');
-  const [accessToken, setAccessToken] = useState('dummy_access_token');
-
-  const onGuestLogin = async () => {
-    await guestLogin(nickName || 'ゲスト');
+  const onQuickStart = async () => {
+    // 自動的にニックネームを生成してゲストログイン
+    const adjectives = ['楽しい', '元気な', '素敵な', '素晴らしい', '素朴な', '勇敢な', '賢い', '優しい'];
+    const animals = ['ねこ', 'いぬ', 'うさぎ', 'パンダ', 'ライオン', 'ぞう', 'きつね', 'たぬき'];
+    
+    const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+    const animal = animals[Math.floor(Math.random() * animals.length)];
+    const number = Math.floor(Math.random() * 999) + 1;
+    const generatedNickname = `${adjective}${animal}${number}`;
+    
+    await guestLogin(generatedNickname);
     router.push('/home');
   };
 
-  const onOAuthLogin = async () => {
-    await oauthLogin({
-      provider_name: providerName,
-      provider_user_id: providerUserId,
-      access_token: accessToken,
-    });
+  const onLogin = async () => {
+    await login({ email, password });
     router.push('/home');
   };
 
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen gap-8 p-6">
-      <h1 className="text-2xl font-bold">ログイン</h1>
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          割り勘アプリ
+        </h2>
+        <p className="mt-2 text-center text-sm text-gray-600">
+          プロジェクトを作成して友達と割り勘を計算しましょう
+        </p>
+      </div>
 
-      <section className="w-80 p-4 border rounded">
-        <h2 className="font-semibold mb-2">ゲストログイン</h2>
-        <input
-          className="w-full border rounded p-2 mb-2"
-          placeholder="ニックネーム"
-          value={nickName}
-          onChange={(e) => setNickName(e.target.value)}
-        />
-        <button className="w-full border rounded p-2 bg-blue-500 text-white" onClick={onGuestLogin} disabled={loading}>
-          ゲストとして入る
-        </button>
-      </section>
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+          {/* 登録せずに始める */}
+          <div className="mb-8">
+            <button
+              onClick={onQuickStart}
+              disabled={loading}
+              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? (
+                <div className="flex items-center">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  開始中...
+                </div>
+              ) : (
+                '登録せずに始める'
+              )}
+            </button>
+            <p className="mt-2 text-center text-xs text-gray-500">
+              ワンクリックでアプリを開始できます
+            </p>
+          </div>
 
-      <section className="w-80 p-4 border rounded">
-        <h2 className="font-semibold mb-2">OAuthログイン（暫定）</h2>
-        <input className="w-full border rounded p-2 mb-2" placeholder="provider_name" value={providerName} onChange={(e) => setProviderName(e.target.value)} />
-        <input className="w-full border rounded p-2 mb-2" placeholder="provider_user_id" value={providerUserId} onChange={(e) => setProviderUserId(e.target.value)} />
-        <input className="w-full border rounded p-2 mb-2" placeholder="access_token" value={accessToken} onChange={(e) => setAccessToken(e.target.value)} />
-        <button className="w-full border rounded p-2 bg-green-600 text-white" onClick={onOAuthLogin} disabled={loading}>
-          OAuthログイン
-        </button>
-      </section>
+          {/* 区切り線 */}
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">または</span>
+            </div>
+          </div>
 
-      {error && <p className="text-red-500">{error}</p>}
-    </main>
+          {/* ログイン・登録フォーム */}
+          <div className="mt-8">
+            <h3 className="text-lg font-medium text-gray-900 mb-4 text-center">
+              アカウントでログイン
+            </h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                  メールアドレス
+                </label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  placeholder="example@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                  パスワード
+                </label>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  placeholder="パスワード"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button 
+                  type="button"
+                  onClick={onLogin} 
+                  disabled={loading}
+                  className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  ログイン
+                </button>
+                <Link href="/register" className="flex-1">
+                  <button className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors">
+                    新規登録
+                  </button>
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* エラー表示 */}
+          {error && (
+            <div className="mt-6 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
+              <p className="text-sm">{error}</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+    </div>
   );
 }

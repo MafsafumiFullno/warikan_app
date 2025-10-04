@@ -21,7 +21,8 @@ Route::get('/csrf-token', function () {
 // 認証関連のルート
 Route::prefix('auth')->group(function () {
     Route::post('/guest-login', [AuthController::class, 'guestLogin']);
-    Route::post('/oauth-login', [AuthController::class, 'oauthLogin']);
+    Route::post('/register', [AuthController::class, 'register']);
+    Route::post('/login', [AuthController::class, 'login']);
     
     // 認証が必要なルート
     Route::middleware('auth:sanctum')->group(function () {

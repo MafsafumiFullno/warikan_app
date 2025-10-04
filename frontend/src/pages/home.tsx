@@ -1,9 +1,11 @@
-import Link from 'next/link';
 import { useState } from 'react';
 import AuthGuard from '@/components/AuthGuard';
+import Layout from '@/components/Layout';
 import { useAuth } from '@/contexts/AuthContext';
+import MainContent from '@/components/MainContent';
 
 export default function Home() {
+  const [activeTab, setActiveTab] = useState('projects'); // デフォルトはプロジェクト一覧
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [projectName, setProjectName] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
@@ -19,20 +21,25 @@ export default function Home() {
 
   return (
     <AuthGuard>
-      <main className="flex flex-col items-center justify-center min-h-screen">
-        <h1 className="text-3xl font-bold mb-2">ホーム画面</h1>
-        <p className="mb-6">ようこそ {customer?.nick_name || customer?.first_name || 'ユーザー'} さん</p>
-        <div className="flex gap-2 mb-6">
-          <button className="px-3 py-2 border rounded" onClick={() => logout()}>ログアウト</button>
-          <Link href="/projectslist">
-            <button className="px-3 py-2 border rounded">プロジェクト一覧</button>
-          </Link>
-          <Link href="/calculator">
-            <button className="px-3 py-2 border rounded">電卓</button>
-          </Link>
-          <button onClick={() => setIsModalOpen(true)} className="px-3 py-2 border rounded hover:bg-gray-100">プロジェクト追加</button>
+      <Layout title="ホーム画面" showProjectsButton={true}>
+        <div>
+          {/* プロジェクト追加ボタンをヘッダーに移動 */}
+          <div className="flex justify-end mb-6">
+            <button 
+              onClick={() => setIsModalOpen(true)} 
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            >
+              新しいプロジェクトを追加
+            </button>
+          </div>
+          
+          {/* メインコンテンツ */}
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <MainContent activeTab={activeTab} />
+          </div>
         </div>
 
+        {/* プロジェクト追加モーダル */}
         {isModalOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white p-6 rounded-lg w-80 shadow-md">
@@ -59,7 +66,7 @@ export default function Home() {
             </div>
           </div>
         )}
-      </main>
+      </Layout>
     </AuthGuard>
   );
 }
