@@ -1,0 +1,236 @@
+# Docker + Laravel 開発環境セットアップ詳細マニュアル
+
+## 概要
+
+このマニュアルは、`README.md` の環境構築手順をより詳細に説明したものです。
+基本的な手順は `README.md` を参照し、より詳細な設定やトラブルシューティングが必要な場合にこのドキュメントを参照してください。
+
+**注意**: 基本的な環境構築手順は `README.md` を参照してください。このドキュメントはより詳細な設定手順を提供します。
+
+---
+
+## 詳細な環境構築手順
+
+### Windows環境でのDocker Desktop設定
+
+1. **Docker Desktop for Windows のインストール**
+   - [Docker Desktop公式サイト](https://www.docker.com/products/docker-desktop/)からダウンロード
+   - WSL2 バックエンドを有効化（推奨）
+
+2. **WSL2 の設定**
+   ```powershell
+   # PowerShell（管理者権限）で実行
+   wsl --install
+   wsl --set-default-version 2
+   ```
+
+### Ubuntu環境でのDocker設定
+
+```bash
+# Dockerのインストール
+sudo apt update
+sudo apt install docker.io docker-compose git -y
+
+# ユーザーをdockerグループに追加
+sudo usermod -aG docker $USER
+newgrp docker
+
+# Dockerの動作確認
+docker --version
+docker-compose --version
+```
+
+---
+
+## Docker Compose設定の詳細
+
+### docker-compose.yml の説明
+
+```yaml
+services:
+  app:
+    build:
+      context: ./backend
+    container_name: warikan_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/var/www
+    depends_on:
+      - db
+
+  db:
+    image: postgres:15
+    container_name: warikan_db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: warikan
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
+```
+
+**重要な設定項目**:
+- `pgdata`ボリューム: データベースの永続化
+- `depends_on`: データベース起動後にアプリケーションを起動
+- `volumes`: ホストとコンテナ間のファイル同期
+
+---
+
+## Laravel環境設定の詳細
+
+### .envファイルの完全な設定例
+
+```env
+APP_NAME=Laravel
+APP_ENV=local
+APP_KEY=base64:your-app-key-here
+APP_DEBUG=true
+APP_TIMEZONE=UTC
+APP_URL=http://localhost:8000
+
+DB_CONNECTION=pgsql
+DB_HOST=db
+DB_PORT=5432
+DB_DATABASE=warikan
+DB_USERNAME=user
+DB_PASSWORD=password
+
+SESSION_DRIVER=database
+SESSION_LIFETIME=120
+SESSION_ENCRYPT=false
+
+CACHE_STORE=database
+QUEUE_CONNECTION=database
+
+MAIL_MAILER=log
+MAIL_HOST=127.0.0.1
+MAIL_PORT=2525
+MAIL_USERNAME=null
+MAIL_PASSWORD=null
+MAIL_ENCRYPTION=null
+MAIL_FROM_ADDRESS="hello@example.com"
+MAIL_FROM_NAME="${APP_NAME}"
+```
+
+---
+
+## トラブルシューティング
+
+### よくある問題と解決方法
+
+#### 1. Dockerコンテナが起動しない
+```bash
+# ログを確認
+docker compose logs
+
+# コンテナを再ビルド
+docker compose up -d --build
+```
+
+#### 2. データベース接続エラー
+```bash
+# データベースコンテナの状態確認
+docker compose ps
+
+# データベースコンテナに接続
+docker compose exec db psql -U user -d warikan
+```
+
+#### 3. Laravelの設定が反映されない
+```bash
+# 設定キャッシュをクリア
+php artisan config:clear
+php artisan cache:clear
+php artisan route:clear
+```
+
+#### 4. マイグレーションエラー
+```bash
+# マイグレーション状態確認
+php artisan migrate:status
+
+# マイグレーションをリセット
+php artisan migrate:reset
+php artisan migrate
+```
+
+---
+
+## 開発時の便利なコマンド
+
+### Docker関連
+```bash
+# コンテナの状態確認
+docker compose ps
+
+# ログの確認
+docker compose logs -f app
+docker compose logs -f db
+
+# コンテナ内でコマンド実行
+docker compose exec app php artisan tinker
+docker compose exec db psql -U user -d warikan
+```
+
+### Laravel関連
+```bash
+# アプリケーションキーの再生成
+php artisan key:generate
+
+# データベースのシーディング
+php artisan db:seed
+
+# ルートの確認
+php artisan route:list
+
+# 設定の確認
+php artisan config:show
+```
+
+---
+
+## 本番環境への移行
+
+### 本番環境用の設定変更
+
+1. **Docker Compose設定**
+   - ポート番号の変更
+   - 環境変数の外部化
+   - セキュリティ設定の強化
+
+2. **Laravel設定**
+   - `APP_ENV=production`
+   - `APP_DEBUG=false`
+   - データベース接続情報の変更
+
+3. **セキュリティ設定**
+   - HTTPSの有効化
+   - CORS設定の調整
+   - ファイアウォール設定
+
+---
+
+## パフォーマンス最適化
+
+### Docker最適化
+- マルチステージビルドの活用
+- 不要なレイヤーの削除
+- ボリュームマウントの最適化
+
+### Laravel最適化
+- 設定キャッシュの有効化
+- ルートキャッシュの有効化
+- ビューキャッシュの有効化
+
+```bash
+# 本番環境用の最適化
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+```

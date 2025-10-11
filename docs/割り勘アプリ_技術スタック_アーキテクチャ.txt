@@ -1,36 +1,162 @@
-# 割り勘アプリ
+# 割り勘アプリ - 技術スタック・アーキテクチャ詳細
 
+## 概要
 
-# ディレクトリ構成イメージ
+このドキュメントは、`README.md` の技術スタック・アーキテクチャ情報をより詳細に説明したものです。
+基本的な情報は `README.md` を参照し、より詳細な技術仕様が必要な場合にこのドキュメントを参照してください。
 
+**注意**: 基本的な技術スタック・アーキテクチャ情報は `README.md` を参照してください。このドキュメントはより詳細な技術仕様を提供します。
+
+## 技術スタック
+
+### バックエンド
+- **フレームワーク**: Laravel 12
+- **言語**: PHP 8.3
+- **データベース**: PostgreSQL 15
+- **認証**: Laravel Sanctum
+- **ORM**: Eloquent ORM
+
+### フロントエンド
+- **フレームワーク**: Next.js 15
+- **言語**: TypeScript
+- **UIライブラリ**: React 19
+- **スタイリング**: Tailwind CSS 4
+- **状態管理**: React Context API
+
+### インフラ・開発環境
+- **コンテナ**: Docker, Docker Compose
+- **バージョン管理**: Git
+- **パッケージ管理**: Composer (PHP), npm (Node.js)
+
+## ディレクトリ構成
+
+```
 warikan_app/
-├── backend/           # バックエンド（Laravel）
-├── frontend/          # フロントエンド（Next.js）
-├── docker-compose.yml # Docker構成ファイル（コンテナ定義）
-├── .gitignore
-├── README.md
-└── その他（必要に応じた設定ファイルなど）
+├── backend/                    # Laravel バックエンド
+│   ├── app/
+│   │   ├── Http/
+│   │   │   ├── Controllers/    # API コントローラー
+│   │   │   └── Middleware/     # ミドルウェア
+│   │   ├── Models/            # Eloquent モデル
+│   │   │   ├── Customer.php
+│   │   │   ├── Project.php
+│   │   │   ├── ProjectTask.php
+│   │   │   └── User.php
+│   │   ├── Services/           # ビジネスロジック
+│   │   │   └── Split/         # 割り勘計算ロジック
+│   │   └── Providers/         # サービスプロバイダー
+│   ├── config/                # 設定ファイル
+│   ├── database/
+│   │   ├── migrations/         # データベースマイグレーション
+│   │   └── seeders/           # データシーダー
+│   ├── routes/
+│   │   └── api.php            # API ルート定義
+│   ├── storage/               # ファイルストレージ
+│   ├── tests/                 # テストファイル
+│   ├── .env                   # 環境変数（gitignore）
+│   ├── composer.json          # PHP依存関係
+│   ├── Dockerfile             # Docker設定
+│   └── artisan                # Laravel CLI
+├── frontend/                   # Next.js フロントエンド
+│   ├── src/
+│   │   ├── components/        # React コンポーネント
+│   │   │   ├── AuthGuard.tsx
+│   │   │   ├── Layout.tsx
+│   │   │   ├── MainContent.tsx
+│   │   │   └── Sidebar.tsx
+│   │   ├── contexts/          # React Context
+│   │   │   └── AuthContext.tsx
+│   │   ├── lib/               # ユーティリティ
+│   │   │   └── api.ts         # API クライアント
+│   │   ├── pages/             # Next.js ページ
+│   │   │   ├── api/           # API Routes
+│   │   │   ├── projects/      # プロジェクト関連ページ
+│   │   │   ├── api-test.tsx   # API テストページ
+│   │   │   ├── calculator.tsx # 計算機ページ
+│   │   │   ├── login.tsx      # ログインページ
+│   │   │   └── register.tsx   # 登録ページ
+│   │   └── styles/            # スタイルファイル
+│   │       └── globals.css
+│   ├── public/                # 静的ファイル
+│   ├── package.json           # Node.js依存関係
+│   ├── tsconfig.json          # TypeScript設定
+│   ├── next.config.ts         # Next.js設定
+│   └── tailwind.config.js     # Tailwind CSS設定
+├── docs/                      # ドキュメント
+│   ├── ER-Diagram.drawio      # ER図
+│   ├── 割り勘アプリ_環境構築.txt
+│   └── 割り勘アプリ_技術スタック_アーキテクチャ.txt
+├── docker-compose.yml         # Docker Compose設定
+├── README.md                  # プロジェクト説明
+└── .gitignore                 # Git除外設定
+```
 
+## アーキテクチャ概要
 
-backend/
-├── app/
-├── bootstrap/
-├── config/
-├── database/
-├── public/
-├── routes/
-├── storage/
-├── tests/
-├── .env
-├── composer.json
-└── artisan
+### システム構成
+```
+[フロントエンド (Next.js)] ←→ [バックエンド (Laravel)] ←→ [データベース (PostgreSQL)]
+     ↓                              ↓
+[React Components]              [API Controllers]
+[TypeScript]                    [PHP]
+[Tailwind CSS]                  [Laravel Sanctum]
+```
 
+### データフロー
+1. **認証フロー**: フロントエンド → Laravel Sanctum → PostgreSQL
+2. **API通信**: Next.js → Laravel API → PostgreSQL
+3. **状態管理**: React Context API でアプリケーション状態を管理
 
-frontend/
-├── components/
-├── pages/
-├── public/
-├── styles/
-├── tsconfig.json
-├── package.json
-└── .env
+### 主要機能
+- **ユーザー認証**: ゲストログイン、ユーザー登録、ログイン
+- **プロジェクト管理**: プロジェクトのCRUD操作
+- **割り勘計算**: 複数の割り勘方法に対応した計算ロジック
+- **精算機能**: プロジェクト完了時の精算処理
+
+## API エンドポイント構成
+
+### 認証関連 (`/api/auth/`)
+- `POST /guest-login` - ゲストログイン
+- `POST /register` - ユーザー登録
+- `POST /login` - ログイン
+- `POST /logout` - ログアウト
+- `GET /me` - ユーザー情報取得
+
+### プロジェクト関連 (`/api/projects/`)
+- `GET /` - プロジェクト一覧
+- `POST /` - プロジェクト作成
+- `GET /{id}` - プロジェクト詳細
+- `PUT /{id}` - プロジェクト更新
+- `DELETE /{id}` - プロジェクト削除
+- `POST /{id}/settlement` - 精算実行
+
+### その他
+- `GET /api/example` - API疎通確認
+- `GET /api/csrf-token` - CSRFトークン取得
+
+## 開発環境
+
+### Docker構成
+- **app**: PHP 8.3 + Laravel 12 実行環境
+- **db**: PostgreSQL 15 データベース
+- **ボリューム**: データベース永続化 (`pgdata`)
+
+### 開発サーバー
+- **バックエンド**: http://localhost:8000
+- **フロントエンド**: http://localhost:3000
+- **APIテスト**: http://localhost:3000/api-test
+
+## セキュリティ
+
+- **認証**: Laravel Sanctum によるトークンベース認証
+- **CSRF保護**: Laravel のCSRF保護機能
+- **CORS設定**: API アクセス制御
+- **入力検証**: Laravel バリデーション機能
+
+## 今後の拡張予定
+
+- **リアルタイム通信**: WebSocket によるリアルタイム更新
+- **他ユーザーとの共有編集**: 検討中
+- **モバイル対応**: 検討中
+- **決済機能**: 外部決済API連携
+- **通知機能**: メール・プッシュ通知
