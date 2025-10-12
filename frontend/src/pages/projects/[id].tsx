@@ -67,7 +67,7 @@ export default function ProjectDetail() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">ログインが必要입니다</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">ログインが必要です</h2>
           <p className="text-gray-600 mb-4">プロジェクトを表示するにはログインしてください</p>
           <button
             onClick={() => router.push('/login')}
