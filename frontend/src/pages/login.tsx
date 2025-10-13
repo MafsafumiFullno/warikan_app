@@ -35,6 +35,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   const onQuickStart = async () => {
     // 自動的にニックネームを生成してゲストログイン
@@ -51,6 +52,9 @@ export default function LoginPage() {
   };
 
   const onLogin = async () => {
+    // 認証エラーをクリア
+    setAuthError(null);
+    
     // バリデーション実行
     const emailValidationError = validateEmail(email);
     const passwordValidationError = validatePassword(password);
@@ -63,8 +67,16 @@ export default function LoginPage() {
       return;
     }
     
-    await login({ email, password });
-    router.push('/home');
+    try {
+      await login({ email, password });
+      router.push('/home');
+    } catch (loginError: any) {
+      // 認証エラーの場合は専用のstateに設定
+      if (loginError.message && loginError.message.includes('メールアドレスまたはパスワードが正しくありません')) {
+        setAuthError('メールアドレスまたはパスワードが間違っている可能性があります。');
+      }
+      // その他のエラーは既存のerror stateで表示される
+    }
   };
 
   return (
@@ -137,6 +149,9 @@ export default function LoginPage() {
                     if (emailError) {
                       setEmailError(null);
                     }
+                    if (authError) {
+                      setAuthError(null);
+                    }
                   }}
                 />
                 {emailError && (
@@ -163,6 +178,9 @@ export default function LoginPage() {
                     if (passwordError) {
                       setPasswordError(null);
                     }
+                    if (authError) {
+                      setAuthError(null);
+                    }
                   }}
                 />
                 {passwordError && (
@@ -185,6 +203,13 @@ export default function LoginPage() {
                   </button>
                 </Link>
               </div>
+              
+              {/* 認証エラー表示 */}
+              {authError && (
+                <div className="mt-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
+                  <p className="text-sm text-center">{authError}</p>
+                </div>
+              )}
             </div>
           </div>
 

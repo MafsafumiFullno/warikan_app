@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiFetch } from '@/lib/api';
+import AccountingModal from '@/components/AccountingModal';
 
 interface Project {
   project_id: number;
@@ -12,18 +13,38 @@ interface Project {
   updated_at: string;
 }
 
+interface Accounting {
+  task_id: number;
+  project_id: number;
+  project_task_code: number;
+  task_name: string;
+  task_member_name: string;
+  customer_id: number;
+  accounting_amount: number;
+  accounting_type: string;
+  breakdown?: string;
+  payment_id?: string;
+  memo?: string;
+  del_flg: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export default function ProjectDetail() {
   const router = useRouter();
   const { customer } = useAuth();
   const { id } = router.query;
   
   const [project, setProject] = useState<Project | null>(null);
+  const [accountings, setAccountings] = useState<Accounting[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showAccountingModal, setShowAccountingModal] = useState(false);
 
   useEffect(() => {
     if (id && typeof id === 'string') {
       fetchProject(parseInt(id));
+      fetchAccountings(parseInt(id));
     }
   }, [id]);
 
@@ -41,6 +62,20 @@ export default function ProjectDetail() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchAccountings = async (projectId: number) => {
+    try {
+      const response = await apiFetch<{ accountings: Accounting[] }>(`/api/projects/${projectId}/accountings`);
+      setAccountings(response.accountings);
+    } catch (err: any) {
+      console.error('会計一覧取得エラー:', err);
+      // エラーは表示しない（会計がない場合もあるため）
+    }
+  };
+
+  const handleAccountingAdded = (newAccounting: Accounting) => {
+    setAccountings(prev => [newAccounting, ...prev]);
   };
 
   const getStatusLabel = (status: string) => {
@@ -176,6 +211,73 @@ export default function ProjectDetail() {
                 </div>
               </div>
             </div>
+
+            {/* 会計一覧 */}
+            <div className="bg-white shadow rounded-lg">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h2 className="text-lg font-medium text-gray-900">会計一覧</h2>
+              </div>
+              <div className="px-6 py-4">
+                {accountings.length === 0 ? (
+                  <div className="text-center text-gray-500 py-8">
+                    <div className="text-4xl mb-4">💰</div>
+                    <p>会計がまだ追加されていません</p>
+                    <p className="text-sm mt-2">「会計を追加」ボタンから会計を追加してください</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {accountings.map((accounting) => (
+                      <div key={accounting.task_id} className="border border-gray-200 rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2">
+                              <h3 className="font-medium text-gray-900">{accounting.task_name}</h3>
+                              <span className={`px-2 py-1 text-xs rounded-full ${
+                                accounting.accounting_type === 'expense' 
+                                  ? 'bg-red-100 text-red-800' 
+                                  : accounting.accounting_type === 'income'
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-blue-100 text-blue-800'
+                              }`}>
+                                {accounting.accounting_type === 'expense' ? '支出' : 
+                                 accounting.accounting_type === 'income' ? '収入' : '振替'}
+                              </span>
+                            </div>
+                            {accounting.breakdown && (
+                              <p className="text-sm text-gray-600 mt-1">{accounting.breakdown}</p>
+                            )}
+                            <p className="text-xs text-gray-500 mt-2">
+                              {accounting.task_member_name} • {new Date(accounting.created_at).toLocaleDateString('ja-JP')}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className={`text-lg font-semibold ${
+                              accounting.accounting_type === 'expense' 
+                                ? 'text-red-600' 
+                                : accounting.accounting_type === 'income'
+                                ? 'text-green-600'
+                                : 'text-blue-600'
+                            }`}>
+                              {accounting.accounting_type === 'expense' ? '-' : '+'}¥{accounting.accounting_amount.toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="border-t border-gray-200 pt-4 mt-4">
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium text-gray-900">合計</span>
+                        <span className="text-xl font-bold text-gray-900">
+                          ¥{accountings.reduce((sum, accounting) => {
+                            return sum + (accounting.accounting_type === 'expense' ? -accounting.accounting_amount : accounting.accounting_amount);
+                          }, 0).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* サイドバー */}
@@ -186,6 +288,12 @@ export default function ProjectDetail() {
                 <h3 className="text-lg font-medium text-gray-900">アクション</h3>
               </div>
               <div className="px-6 py-4 space-y-3">
+                <button
+                  onClick={() => setShowAccountingModal(true)}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
+                >
+                  会計を追加
+                </button>
                 <button
                   onClick={() => router.push(`/calculator?project=${project.project_id}`)}
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
@@ -246,6 +354,16 @@ export default function ProjectDetail() {
           </button>
         </div>
       </div>
+
+      {/* 会計追加モーダル */}
+      {project && (
+        <AccountingModal
+          isOpen={showAccountingModal}
+          onClose={() => setShowAccountingModal(false)}
+          projectId={project.project_id}
+          onAccountingAdded={handleAccountingAdded}
+        />
+      )}
     </div>
   );
 }

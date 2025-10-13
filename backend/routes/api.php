@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\ProjectTaskController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -41,4 +42,10 @@ Route::middleware(['auth:sanctum', 'auth.customer'])->prefix('projects')->group(
     Route::put('/{projectId}', [ProjectController::class, 'update']);
     Route::delete('/{projectId}', [ProjectController::class, 'destroy']);
     Route::post('/{projectId}/settlement', [ProjectController::class, 'settlement']);
+    
+    // 会計管理（ProjectTaskを使用）
+    Route::get('/{projectId}/accountings', [ProjectTaskController::class, 'index']);
+    Route::post('/{projectId}/accountings', [ProjectTaskController::class, 'store']);
+    Route::put('/{projectId}/accountings/{taskId}', [ProjectTaskController::class, 'update']);
+    Route::delete('/{projectId}/accountings/{taskId}', [ProjectTaskController::class, 'destroy']);
 });

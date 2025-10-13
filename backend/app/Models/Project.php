@@ -28,4 +28,9 @@ class Project extends Model
     {
         return $this->belongsTo(Customer::class, 'customer_id');
     }
+
+    public function projectTasks()
+    {
+        return $this->hasMany(ProjectTask::class, 'project_id');
+    }
 }
