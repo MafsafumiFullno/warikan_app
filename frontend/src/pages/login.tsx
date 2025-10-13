@@ -3,11 +3,38 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 
+const validateEmail = (email: string): string | null => {
+  if (!email.trim()) {
+    return 'メールアドレスを入力してください';
+  }
+  
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return '正しいメールアドレス形式で入力してください';
+  }
+  
+  return null;
+};
+
+const validatePassword = (password: string): string | null => {
+  if (!password) {
+    return 'パスワードを入力してください';
+  }
+  
+  if (password.length < 6) {
+    return 'パスワードは6文字以上で入力してください';
+  }
+  
+  return null;
+};
+
 export default function LoginPage() {
   const router = useRouter();
   const { guestLogin, login, loading, error } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
 
   const onQuickStart = async () => {
     // 自動的にニックネームを生成してゲストログイン
@@ -24,6 +51,18 @@ export default function LoginPage() {
   };
 
   const onLogin = async () => {
+    // バリデーション実行
+    const emailValidationError = validateEmail(email);
+    const passwordValidationError = validatePassword(password);
+    
+    setEmailError(emailValidationError);
+    setPasswordError(passwordValidationError);
+    
+    // バリデーションエラーがある場合は処理を停止
+    if (emailValidationError || passwordValidationError) {
+      return;
+    }
+    
     await login({ email, password });
     router.push('/home');
   };
@@ -87,11 +126,22 @@ export default function LoginPage() {
                   id="email"
                   name="email"
                   type="email"
-                  className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  className={`mt-1 appearance-none block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
+                    emailError ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
+                  }`}
                   placeholder="example@email.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    // 入力時にエラーをクリア
+                    if (emailError) {
+                      setEmailError(null);
+                    }
+                  }}
                 />
+                {emailError && (
+                  <p className="mt-1 text-sm text-red-600">{emailError}</p>
+                )}
               </div>
 
               <div>
@@ -102,11 +152,22 @@ export default function LoginPage() {
                   id="password"
                   name="password"
                   type="password"
-                  className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  className={`mt-1 appearance-none block w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
+                    passwordError ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
+                  }`}
                   placeholder="パスワード"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    // 入力時にエラーをクリア
+                    if (passwordError) {
+                      setPasswordError(null);
+                    }
+                  }}
                 />
+                {passwordError && (
+                  <p className="mt-1 text-sm text-red-600">{passwordError}</p>
+                )}
               </div>
 
               <div className="flex gap-3">
