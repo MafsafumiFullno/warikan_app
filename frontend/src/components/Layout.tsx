@@ -2,21 +2,21 @@ import React from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
 import Sidebar from './Sidebar';
+import ProjectsListComponent from './ProjectsListComponent';
 
 interface LayoutProps {
   children: React.ReactNode;
   title?: string;
-  showProjectsButton?: boolean;
 }
 
-export default function Layout({ children, title = 'プロジェクト一覧', showProjectsButton = true }: LayoutProps) {
+export default function Layout({ children, title = 'プロジェクト一覧' }: LayoutProps) {
   const router = useRouter();
   const { customer, logout } = useAuth();
 
   const handleTabChange = (tab: string) => {
     switch (tab) {
       case 'projects':
-        router.push('/home');
+        router.push('/projectslist');
         break;
       case 'calculator':
         router.push('/calculator');
@@ -37,7 +37,7 @@ export default function Layout({ children, title = 'プロジェクト一覧', s
   const getCurrentTab = () => {
     const path = router.pathname;
     if (path === '/calculator') return 'calculator';
-    if (path === '/home') return 'projects';
+    if (path === '/projectslist') return 'projects';
     if (path === '/profile') return 'profile';
     return 'projects'; // デフォルト
   };
@@ -71,7 +71,11 @@ export default function Layout({ children, title = 'プロジェクト一覧', s
         
         {/* メインコンテンツ */}
         <main className="flex-1 bg-gray-50">
-          {children}
+          {children || (
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+              <ProjectsListComponent />
+            </div>
+          )}
         </main>
       </div>
     </div>
