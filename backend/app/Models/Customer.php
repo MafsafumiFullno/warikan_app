@@ -53,5 +53,18 @@ class Customer extends Authenticatable
     {
         return $this->hasMany(ProjectTask::class, 'customer_id');
     }
+
+    public function projects()
+    {
+        return $this->belongsToMany(Project::class, 'project_members', 'customer_id', 'project_id')
+                    ->withPivot('role', 'del_flg')
+                    ->wherePivot('del_flg', false)
+                    ->withTimestamps();
+    }
+
+    public function projectMembers()
+    {
+        return $this->hasMany(ProjectMember::class, 'customer_id');
+    }
 }
 

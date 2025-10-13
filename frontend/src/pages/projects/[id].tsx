@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiFetch } from '@/lib/api';
 import AccountingModal from '@/components/AccountingModal';
+import MembersList from '@/components/MembersList';
 
 interface Project {
   project_id: number;
@@ -30,6 +31,20 @@ interface Accounting {
   updated_at: string;
 }
 
+interface Member {
+  id: number;
+  project_member_id: number;
+  customer_id: number;
+  role: string;
+  role_name: string;
+  split_weight: number;
+  memo?: string;
+  name: string;
+  email?: string;
+  is_guest: boolean;
+  joined_at: string;
+}
+
 export default function ProjectDetail() {
   const router = useRouter();
   const { customer } = useAuth();
@@ -37,6 +52,7 @@ export default function ProjectDetail() {
   
   const [project, setProject] = useState<Project | null>(null);
   const [accountings, setAccountings] = useState<Accounting[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAccountingModal, setShowAccountingModal] = useState(false);
@@ -45,6 +61,7 @@ export default function ProjectDetail() {
     if (id && typeof id === 'string') {
       fetchProject(parseInt(id));
       fetchAccountings(parseInt(id));
+      fetchMembers(parseInt(id));
     }
   }, [id]);
 
@@ -74,8 +91,26 @@ export default function ProjectDetail() {
     }
   };
 
+  const fetchMembers = async (projectId: number) => {
+    try {
+      const response = await apiFetch<{ members: Member[] }>(`/api/projects/${projectId}/members`);
+      setMembers(response.members);
+    } catch (err: any) {
+      console.error('メンバー一覧取得エラー:', err);
+      // エラーは表示しない（メンバーがない場合もあるため）
+    }
+  };
+
   const handleAccountingAdded = (newAccounting: Accounting) => {
     setAccountings(prev => [newAccounting, ...prev]);
+  };
+
+  const handleMemberAdded = (newMember: Member) => {
+    setMembers(prev => [...prev, newMember]);
+  };
+
+  const handleMemberRemoved = (memberId: number) => {
+    setMembers(prev => prev.filter(member => member.project_member_id !== memberId));
   };
 
   const getStatusLabel = (status: string) => {
@@ -199,18 +234,16 @@ export default function ProjectDetail() {
               </div>
             </div>
 
-            {/* メンバー管理（今後実装予定） */}
-            <div className="bg-white shadow rounded-lg">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h2 className="text-lg font-medium text-gray-900">メンバー</h2>
-              </div>
-              <div className="px-6 py-4">
-                <div className="text-center text-gray-500 py-8">
-                  <div className="text-4xl mb-4">👥</div>
-                  <p>メンバー機能は近日実装予定です</p>
-                </div>
-              </div>
-            </div>
+            {/* メンバー管理 */}
+            {project && (
+              <MembersList
+                projectId={project.project_id}
+                currentUserId={customer?.customer_id || 0}
+                isOwner={members.some(member => member.customer_id === customer?.customer_id && member.role === 'owner')}
+                onMemberAdded={handleMemberAdded}
+                onMemberRemoved={handleMemberRemoved}
+              />
+            )}
 
             {/* 会計一覧 */}
             <div className="bg-white shadow rounded-lg">

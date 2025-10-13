@@ -33,4 +33,17 @@ class Project extends Model
     {
         return $this->hasMany(ProjectTask::class, 'project_id');
     }
+
+    public function members()
+    {
+        return $this->belongsToMany(Customer::class, 'project_members', 'project_id', 'customer_id')
+                    ->withPivot('role', 'del_flg')
+                    ->wherePivot('del_flg', false)
+                    ->withTimestamps();
+    }
+
+    public function projectMembers()
+    {
+        return $this->hasMany(ProjectMember::class, 'project_id');
+    }
 }

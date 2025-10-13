@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectTaskController;
+use App\Http\Controllers\ProjectMemberController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -48,4 +49,11 @@ Route::middleware(['auth:sanctum', 'auth.customer'])->prefix('projects')->group(
     Route::post('/{projectId}/accountings', [ProjectTaskController::class, 'store']);
     Route::put('/{projectId}/accountings/{taskId}', [ProjectTaskController::class, 'update']);
     Route::delete('/{projectId}/accountings/{taskId}', [ProjectTaskController::class, 'destroy']);
+    
+    // メンバー管理
+    Route::get('/{projectId}/members', [ProjectMemberController::class, 'index']);
+    Route::post('/{projectId}/members', [ProjectMemberController::class, 'store']);
+    Route::put('/{projectId}/members/{memberId}/split-weight', [ProjectMemberController::class, 'updateWeight']);
+    Route::put('/{projectId}/members/{memberId}/memo', [ProjectMemberController::class, 'updateMemo']);
+    Route::delete('/{projectId}/members/{memberId}', [ProjectMemberController::class, 'destroy']);
 });

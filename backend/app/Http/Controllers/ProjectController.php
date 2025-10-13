@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\CustomerSplitMethod;
 use App\Models\Project;
+use App\Models\ProjectMember;
+use App\Models\ProjectRole;
 use App\Services\Split\EqualSplitStrategy;
 use App\Services\Split\SplitService;
 use App\Services\Split\WeightedSplitStrategy;
@@ -109,6 +111,21 @@ class ProjectController extends Controller
                 'del_flg' => false,
             ]);
 
+            // プロジェクト作成者をオーナーとしてメンバーに追加
+            $ownerRole = ProjectRole::where('role_code', 'owner')->first();
+            if (!$ownerRole) {
+                throw new \Exception('オーナーロールが見つかりません');
+            }
+
+            ProjectMember::create([
+                'project_id' => $project->project_id,
+                'project_member_id' => 1, // オーナーは常に1番
+                'customer_id' => $customer->customer_id,
+                'role_id' => $ownerRole->role_id,
+                'split_weight' => 1.00,
+                'del_flg' => false,
+            ]);
+
             Log::info('プロジェクト作成完了', ['project_id' => $project->project_id]);
 
             return response()->json(['project' => $project], 201);
@@ -135,12 +152,21 @@ class ProjectController extends Controller
         $customer = $request->user();
 
         $project = Project::where('project_id', $projectId)
-            ->where('customer_id', $customer->customer_id)
             ->where('del_flg', false)
             ->first();
 
         if (!$project) {
             return response()->json(['message' => 'プロジェクトが見つかりません。'], 404);
+        }
+
+        // プロジェクトのオーナーまたはメンバーかチェック
+        $isMember = ProjectMember::where('project_id', $projectId)
+                                ->where('customer_id', $customer->customer_id)
+                                ->where('del_flg', false)
+                                ->exists();
+        
+        if (!$isMember) {
+            return response()->json(['message' => 'アクセス権限がありません。'], 403);
         }
 
         return response()->json(['project' => $project]);
