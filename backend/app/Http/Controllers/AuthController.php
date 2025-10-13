@@ -109,6 +109,52 @@ class AuthController extends Controller
     }
 
     /**
+     * ゲストユーザーを会員にアップグレード
+     */
+    public function upgradeToMember(Request $request): JsonResponse
+    {
+        $customer = $request->user();
+
+        // ゲストユーザーでない場合はエラー
+        if (!$customer->is_guest) {
+            return response()->json([
+                'message' => '既に会員登録済みです',
+            ], 400);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email|unique:customers,email,' . $customer->customer_id . ',customer_id',
+            'password' => 'required|string|min:8',
+            'first_name' => 'nullable|string|max:255',
+            'last_name' => 'nullable|string|max:255',
+            'nick_name' => 'nullable|string|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'バリデーションエラー',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        // 既存のゲストアカウントを更新
+        $customer->update([
+            'is_guest' => false,
+            'email' => $request->email,
+            'first_name' => $request->first_name,
+            'last_name' => $request->last_name,
+            'nick_name' => $request->nick_name,
+            'password' => Hash::make($request->password),
+        ]);
+
+        return response()->json([
+            'message' => '会員登録完了',
+            'customer' => $customer->fresh(),
+            'token_type' => 'Bearer',
+        ], 200);
+    }
+
+    /**
      * ログイン（メール/パスワード）
      */
     public function login(Request $request): JsonResponse
@@ -164,6 +210,75 @@ class AuthController extends Controller
         return response()->json([
             'customer' => $customer
         ], 200);
+    }
+
+    /**
+     * ユーザー情報更新
+     */
+    public function updateProfile(Request $request): JsonResponse
+    {
+        try {
+            $customer = $request->user();
+
+            $validator = Validator::make($request->all(), [
+                'first_name' => 'nullable|string|max:255',
+                'last_name' => 'nullable|string|max:255',
+                'nick_name' => 'nullable|string|max:255',
+                'email' => 'nullable|email|unique:customers,email,' . $customer->customer_id . ',customer_id',
+                'password' => 'nullable|string|min:8',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'message' => 'バリデーションエラー',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            $updateData = [];
+            
+            if ($request->filled('first_name')) {
+                $updateData['first_name'] = $request->first_name;
+            }
+            if ($request->filled('last_name')) {
+                $updateData['last_name'] = $request->last_name;
+            }
+            if ($request->filled('nick_name')) {
+                $updateData['nick_name'] = $request->nick_name;
+            }
+            if ($request->filled('email')) {
+                $updateData['email'] = $request->email;
+            }
+            if ($request->filled('password')) {
+                $updateData['password'] = Hash::make($request->password);
+            }
+
+            if (empty($updateData)) {
+                return response()->json([
+                    'message' => '更新するデータがありません',
+                ], 400);
+            }
+
+            $customer->update($updateData);
+
+            return response()->json([
+                'message' => 'プロフィール更新成功',
+                'customer' => $customer->fresh()
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('プロフィール更新エラー', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->all(),
+                'customer_id' => $request->user()?->customer_id
+            ]);
+
+            return response()->json([
+                'message' => 'プロフィール更新に失敗しました',
+                'error' => config('app.debug') ? $e->getMessage() : 'サーバーエラーが発生しました'
+            ], 500);
+        }
     }
 
     /**

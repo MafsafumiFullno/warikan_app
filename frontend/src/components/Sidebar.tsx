@@ -28,6 +28,15 @@ const SidebarItem = ({ item, isActive, onTabChange }: {
     onTabChange(item.id);
   };
 
+  if (item.href) {
+    return (
+      <Link href={item.href} className={className}>
+        {item.icon}
+        <span className="font-medium">{item.label}</span>
+      </Link>
+    );
+  }
+
   return (
     <button onClick={handleClick} className={className}>
       {item.icon}
@@ -54,6 +63,16 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 -c4l4 4m-4-4l-4 4m0 2h2m8 0h2" />
+        </svg>
+      ),
+    },
+    {
+      id: 'profile',
+      label: 'ユーザー情報',
+      href: '/profile',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
         </svg>
       ),
     },

@@ -2,6 +2,7 @@ import React from 'react';
 import { useState, useEffect } from 'react';
 import { apiFetch } from '../lib/api';
 import ProjectsList from '../pages/projectslist';
+import Profile from '../pages/profile';
 
 interface MainContentProps {
   activeTab: string;
@@ -243,6 +244,8 @@ export default function MainContent({ activeTab }: MainContentProps) {
         return renderProjectsList();
       case 'calculator':
         return renderCalculator();
+      case 'profile':
+        return <Profile />;
       case 'settings':
         return renderSettings();
       default:

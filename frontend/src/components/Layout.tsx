@@ -9,7 +9,7 @@ interface LayoutProps {
   showProjectsButton?: boolean;
 }
 
-export default function Layout({ children, title = 'ホーム画面', showProjectsButton = true }: LayoutProps) {
+export default function Layout({ children, title = 'プロジェクト一覧', showProjectsButton = true }: LayoutProps) {
   const router = useRouter();
   const { customer, logout } = useAuth();
 
@@ -20,6 +20,9 @@ export default function Layout({ children, title = 'ホーム画面', showProjec
         break;
       case 'calculator':
         router.push('/calculator');
+        break;
+      case 'profile':
+        router.push('/profile');
         break;
       case 'settings':
         // 設定ページは将来実装
@@ -35,6 +38,7 @@ export default function Layout({ children, title = 'ホーム画面', showProjec
     const path = router.pathname;
     if (path === '/calculator') return 'calculator';
     if (path === '/home') return 'projects';
+    if (path === '/profile') return 'profile';
     return 'projects'; // デフォルト
   };
 
