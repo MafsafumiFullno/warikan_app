@@ -107,7 +107,7 @@ export default function RegisterPage() {
       });
       
       // 登録成功時はホームページに遷移
-      router.push('/home');
+      router.push('/projectslist');
     } catch (err) {
       // エラーはAuthContextで処理される
       console.error('登録エラー:', err);

@@ -39,22 +39,22 @@ class Customer extends Authenticatable
         return $this->hasMany(OAuthAccount::class, 'customer_id');
     }
 
-    public function projects()
+    public function createdProjects()
     {
         return $this->hasMany(Project::class, 'customer_id');
     }
 
-    public function customerSplitMethods()
+    public function preferredSplitMethods()
     {
         return $this->hasMany(CustomerSplitMethod::class, 'customer_id');
     }
 
-    public function projectTasks()
+    public function responsibleTasks()
     {
         return $this->hasMany(ProjectTask::class, 'customer_id');
     }
 
-    public function projects()
+    public function participatingProjects()
     {
         return $this->belongsToMany(Project::class, 'project_members', 'customer_id', 'project_id')
                     ->withPivot('role', 'del_flg')
@@ -62,7 +62,7 @@ class Customer extends Authenticatable
                     ->withTimestamps();
     }
 
-    public function projectMembers()
+    public function projectMemberships()
     {
         return $this->hasMany(ProjectMember::class, 'customer_id');
     }

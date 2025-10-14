@@ -48,7 +48,7 @@ export default function LoginPage() {
     const generatedNickname = `${adjective}${animal}${number}`;
     
     await guestLogin(generatedNickname);
-    router.push('/home');
+    router.push('/projectslist');
   };
 
   const onLogin = async () => {
@@ -69,7 +69,7 @@ export default function LoginPage() {
     
     try {
       await login({ email, password });
-      router.push('/home');
+      router.push('/projectslist');
     } catch (loginError: any) {
       // 認証エラーの場合は専用のstateに設定
       if (loginError.message && loginError.message.includes('メールアドレスまたはパスワードが正しくありません')) {

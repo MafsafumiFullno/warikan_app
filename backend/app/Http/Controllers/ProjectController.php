@@ -149,27 +149,42 @@ class ProjectController extends Controller
      */
     public function show(Request $request, int $projectId): JsonResponse
     {
-        $customer = $request->user();
+        try {
+            $customer = $request->user();
 
-        $project = Project::where('project_id', $projectId)
-            ->where('del_flg', false)
-            ->first();
+            if (!$customer) {
+                return response()->json(['message' => '認証が必要です。'], 401);
+            }
 
-        if (!$project) {
-            return response()->json(['message' => 'プロジェクトが見つかりません。'], 404);
+            $project = Project::where('project_id', $projectId)
+                ->where('del_flg', false)
+                ->first();
+
+            if (!$project) {
+                return response()->json(['message' => 'プロジェクトが見つかりません。'], 404);
+            }
+
+            // プロジェクトのオーナーまたはメンバーかチェック
+            $isMember = ProjectMember::where('project_id', $projectId)
+                                    ->where('customer_id', $customer->customer_id)
+                                    ->where('del_flg', false)
+                                    ->exists();
+            
+            // プロジェクトオーナーかチェック
+            $isOwner = $project->customer_id === $customer->customer_id;
+            
+            if (!$isMember && !$isOwner) {
+                return response()->json(['message' => 'アクセス権限がありません。'], 403);
+            }
+
+            return response()->json(['project' => $project]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'プロジェクトの取得に失敗しました。',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
         }
-
-        // プロジェクトのオーナーまたはメンバーかチェック
-        $isMember = ProjectMember::where('project_id', $projectId)
-                                ->where('customer_id', $customer->customer_id)
-                                ->where('del_flg', false)
-                                ->exists();
-        
-        if (!$isMember) {
-            return response()->json(['message' => 'アクセス権限がありません。'], 403);
-        }
-
-        return response()->json(['project' => $project]);
     }
 
     /**

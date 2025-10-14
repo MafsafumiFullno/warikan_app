@@ -31,12 +31,13 @@ class ProjectMemberController extends Controller
             }
 
             // プロジェクトのオーナーまたはメンバーかチェック
+            $isOwner = $project->customer_id === $customer->customer_id;
             $isMember = ProjectMember::where('project_id', $projectId)
                                     ->where('customer_id', $customer->customer_id)
                                     ->where('del_flg', false)
                                     ->exists();
             
-            if (!$isMember) {
+            if (!$isOwner && !$isMember) {
                 return response()->json(['error' => 'アクセス権限がありません'], 403);
             }
 
@@ -71,7 +72,10 @@ class ProjectMemberController extends Controller
             return response()->json(['members' => $members]);
             
         } catch (\Exception $e) {
-            return response()->json(['error' => 'メンバー一覧の取得に失敗しました'], 500);
+            return response()->json([
+                'error' => 'メンバー一覧の取得に失敗しました',
+                'message' => config('app.debug') ? $e->getMessage() : 'サーバーエラーが発生しました'
+            ], 500);
         }
     }
 

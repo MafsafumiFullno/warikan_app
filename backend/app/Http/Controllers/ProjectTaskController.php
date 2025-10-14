@@ -16,10 +16,26 @@ class ProjectTaskController extends Controller
     public function index(Request $request, int $projectId): JsonResponse
     {
         try {
-            $project = Project::findOrFail($projectId);
+            $customer = $request->user();
+
+            $project = Project::where('project_id', $projectId)
+                ->where('del_flg', false)
+                ->first();
             
-            // プロジェクトの所有者かチェック
-            if ($project->customer_id !== $request->user()->customer_id) {
+            if (!$project) {
+                return response()->json([
+                    'message' => 'プロジェクトが見つかりません'
+                ], 404);
+            }
+
+            // プロジェクトのオーナーまたはメンバーかチェック
+            $isOwner = $project->customer_id === $customer->customer_id;
+            $isMember = \App\Models\ProjectMember::where('project_id', $projectId)
+                                                ->where('customer_id', $customer->customer_id)
+                                                ->where('del_flg', false)
+                                                ->exists();
+            
+            if (!$isOwner && !$isMember) {
                 return response()->json([
                     'message' => 'アクセス権限がありません'
                 ], 403);
