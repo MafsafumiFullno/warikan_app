@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiFetch } from '@/lib/api';
 import AccountingModal from '@/components/AccountingModal';
+import EditAccountingModal from '@/components/EditAccountingModal';
 import MembersList from '@/components/MembersList';
 
 interface Project {
@@ -27,6 +28,7 @@ interface Accounting {
   payment_id?: string;
   memo?: string;
   target_members?: string[];
+  target_member_ids?: number[];
   del_flg: boolean;
   created_at: string;
   updated_at: string;
@@ -58,6 +60,8 @@ export default function ProjectDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAccountingModal, setShowAccountingModal] = useState(false);
+  const [showEditAccountingModal, setShowEditAccountingModal] = useState(false);
+  const [selectedAccounting, setSelectedAccounting] = useState<Accounting | null>(null);
 
   useEffect(() => {
     if (id && typeof id === 'string') {
@@ -106,6 +110,17 @@ export default function ProjectDetail() {
 
   const handleAccountingAdded = (newAccounting: Accounting) => {
     setAccountings(prev => [newAccounting, ...prev]);
+  };
+
+  const handleAccountingUpdated = (updatedAccounting: Accounting) => {
+    setAccountings(prev => prev.map(accounting => 
+      accounting.task_id === updatedAccounting.task_id ? updatedAccounting : accounting
+    ));
+  };
+
+  const handleAccountingClick = (accounting: Accounting) => {
+    setSelectedAccounting(accounting);
+    setShowEditAccountingModal(true);
   };
 
   const handleMemberAdded = (newMember: Member) => {
@@ -263,7 +278,11 @@ export default function ProjectDetail() {
                 ) : (
                   <div className="space-y-4">
                     {accountings.map((accounting) => (
-                      <div key={accounting.task_id} className="border border-gray-200 rounded-lg p-4">
+                      <div 
+                        key={accounting.task_id} 
+                        className="border border-gray-200 rounded-lg p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                        onClick={() => handleAccountingClick(accounting)}
+                      >
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
                             <div className="flex items-center space-x-2">
@@ -411,6 +430,22 @@ export default function ProjectDetail() {
           projectId={project.project_id}
           members={members}
           onAccountingAdded={handleAccountingAdded}
+        />
+      )}
+
+      {/* 会計編集モーダル */}
+      {project && selectedAccounting && (
+        <EditAccountingModal
+          isOpen={showEditAccountingModal}
+          onClose={() => {
+            setShowEditAccountingModal(false);
+            setSelectedAccounting(null);
+          }}
+          projectId={project.project_id}
+          taskId={selectedAccounting.task_id}
+          members={members}
+          accounting={selectedAccounting}
+          onAccountingUpdated={handleAccountingUpdated}
         />
       )}
     </div>

@@ -44,8 +44,31 @@ class ProjectTaskController extends Controller
 
             $projectTasks = ProjectTask::where('project_id', $projectId)
                 ->where('del_flg', false)
+                ->with(['taskMembers.projectMember.customer'])
                 ->orderBy('created_at', 'desc')
-                ->get();
+                ->get()
+                ->map(function ($task) {
+                    // 対象メンバーの名前とIDを取得
+                    $targetMembers = $task->taskMembers->map(function ($taskMember) {
+                        $member = $taskMember->projectMember;
+                        if (!$member) return null;
+                        
+                        $memberName = $member->customer_id 
+                            ? ($member->customer->nick_name ?: trim($member->customer->first_name . ' ' . $member->customer->last_name) ?: 'メンバー')
+                            : $member->member_name;
+                        
+                        return [
+                            'id' => $member->id,
+                            'name' => $memberName
+                        ];
+                    })->filter()->toArray();
+                    
+                    $taskArray = $task->toArray();
+                    $taskArray['target_members'] = array_column($targetMembers, 'name');
+                    $taskArray['target_member_ids'] = array_column($targetMembers, 'id');
+                    
+                    return $taskArray;
+                });
 
             return response()->json([
                 'accountings' => $projectTasks
@@ -187,6 +210,8 @@ class ProjectTaskController extends Controller
                 'description' => 'nullable|string|max:1000',
                 'accounting_type' => 'nullable|string|max:50',
                 'member_name' => 'required|string|max:255',
+                'target_member_ids' => 'nullable|array',
+                'target_member_ids.*' => 'integer|exists:project_members,id',
             ]);
 
             if ($validator->fails()) {
@@ -203,6 +228,22 @@ class ProjectTaskController extends Controller
                 'accounting_type' => $request->accounting_type ?? 'expense',
                 'breakdown' => $request->description,
             ]);
+
+            // 対象メンバーを更新（target_member_idsが提供されている場合のみ）
+            if ($request->has('target_member_ids') && is_array($request->target_member_ids)) {
+                // 既存の対象メンバーを論理削除
+                \App\Models\ProjectTaskMember::where('task_id', $taskId)
+                    ->update(['del_flg' => true]);
+
+                // 新しい対象メンバーを追加
+                foreach ($request->target_member_ids as $memberId) {
+                    \App\Models\ProjectTaskMember::create([
+                        'member_id' => $memberId,
+                        'task_id' => $taskId,
+                        'del_flg' => false,
+                    ]);
+                }
+            }
 
             return response()->json([
                 'message' => '会計を更新しました',
