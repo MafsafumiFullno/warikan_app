@@ -6,6 +6,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectTaskController;
 use App\Http\Controllers\ProjectMemberController;
+use App\Http\Controllers\SplitCalculationController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -42,7 +43,6 @@ Route::middleware(['auth:sanctum', 'auth.customer'])->prefix('projects')->group(
     Route::get('/{projectId}', [ProjectController::class, 'show']);
     Route::put('/{projectId}', [ProjectController::class, 'update']);
     Route::delete('/{projectId}', [ProjectController::class, 'destroy']);
-    Route::post('/{projectId}/settlement', [ProjectController::class, 'settlement']);
     
     // 会計管理（ProjectTaskを使用）
     Route::get('/{projectId}/accountings', [ProjectTaskController::class, 'index']);
@@ -56,4 +56,7 @@ Route::middleware(['auth:sanctum', 'auth.customer'])->prefix('projects')->group(
     Route::put('/{projectId}/members/{memberId}/split-weight', [ProjectMemberController::class, 'updateWeight']);
     Route::put('/{projectId}/members/{memberId}/memo', [ProjectMemberController::class, 'updateMemo']);
     Route::delete('/{projectId}/members/{memberId}', [ProjectMemberController::class, 'destroy']);
+    
+    // 割り勘計算
+    Route::post('/{projectId}/split-calculation', [SplitCalculationController::class, 'calculate']);
 });

@@ -46,7 +46,19 @@ class ProjectMemberController extends Controller
                                   ->where('del_flg', false)
                                   ->with(['customer', 'role'])
                                   ->get()
-                                  ->map(function ($member) {
+                                  ->map(function ($member) use ($projectId) {
+                                      $memberName = $member->customer_id 
+                                          ? ($member->customer->nick_name ?: 
+                                             ($member->customer->first_name . ' ' . $member->customer->last_name))
+                                          : $member->member_name;
+                                      
+                                      // メンバーの支出合計を計算
+                                      $totalExpense = \App\Models\ProjectTask::where('project_id', $projectId)
+                                          ->where('task_member_name', $memberName)
+                                          ->where('accounting_type', 'expense')
+                                          ->where('del_flg', false)
+                                          ->sum('accounting_amount');
+                                      
                                       return [
                                           'id' => $member->id,
                                           'project_member_id' => $member->project_member_id,
@@ -55,10 +67,7 @@ class ProjectMemberController extends Controller
                                           'role_name' => $member->role->role_name,
                                           'split_weight' => $member->split_weight,
                                           'memo' => $member->memo,
-                                          'name' => $member->customer_id 
-                                              ? ($member->customer->nick_name ?: 
-                                                 ($member->customer->first_name . ' ' . $member->customer->last_name))
-                                              : $member->member_name,
+                                          'name' => $memberName,
                                           'email' => $member->customer_id 
                                               ? $member->customer->email 
                                               : $member->member_email,
@@ -66,6 +75,7 @@ class ProjectMemberController extends Controller
                                               ? $member->customer->is_guest 
                                               : true,
                                           'joined_at' => $member->created_at,
+                                          'total_expense' => (float) $totalExpense,
                                       ];
                                   });
 
@@ -198,6 +208,18 @@ class ProjectMemberController extends Controller
                                       ->with(['customer', 'role'])
                                       ->first();
 
+                // メンバーの支出合計を計算
+                $memberName = $member->customer_id 
+                    ? ($member->customer->nick_name ?: 
+                       ($member->customer->first_name . ' ' . $member->customer->last_name))
+                    : $member->member_name;
+                
+                $totalExpense = \App\Models\ProjectTask::where('project_id', $projectId)
+                    ->where('task_member_name', $memberName)
+                    ->where('accounting_type', 'expense')
+                    ->where('del_flg', false)
+                    ->sum('accounting_amount');
+
                 DB::commit();
 
                 return response()->json([
@@ -210,10 +232,7 @@ class ProjectMemberController extends Controller
                         'role_name' => $member->role->role_name,
                         'split_weight' => $member->split_weight,
                         'memo' => $member->memo,
-                        'name' => $member->customer_id 
-                            ? ($member->customer->nick_name ?: 
-                               ($member->customer->first_name . ' ' . $member->customer->last_name))
-                            : $member->member_name,
+                        'name' => $memberName,
                         'email' => $member->customer_id 
                             ? $member->customer->email 
                             : $member->member_email,
@@ -221,6 +240,7 @@ class ProjectMemberController extends Controller
                             ? $member->customer->is_guest 
                             : true,
                         'joined_at' => $member->created_at,
+                        'total_expense' => (float) $totalExpense,
                     ]
                 ], 201);
 

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { apiFetch } from '@/lib/api';
 
 interface Accounting {
   task_id: number;
@@ -12,25 +13,43 @@ interface Accounting {
   breakdown?: string;
   payment_id?: string;
   memo?: string;
+  target_members?: string[];
   del_flg: boolean;
   created_at: string;
   updated_at: string;
+}
+
+interface Member {
+  id: number;
+  project_member_id: number;
+  customer_id: number;
+  role: string;
+  role_name: string;
+  split_weight: number;
+  memo?: string;
+  name: string;
+  email?: string;
+  is_guest: boolean;
+  joined_at: string;
+  total_expense: number;
 }
 
 interface AccountingModalProps {
   isOpen: boolean;
   onClose: () => void;
   projectId: number;
+  members: Member[];
   onAccountingAdded: (accounting: Accounting) => void;
 }
 
-export default function AccountingModal({ isOpen, onClose, projectId, onAccountingAdded }: AccountingModalProps) {
+export default function AccountingModal({ isOpen, onClose, projectId, members, onAccountingAdded }: AccountingModalProps) {
   const [formData, setFormData] = useState({
     accounting_name: '',
     amount: '',
     description: '',
     accounting_type: 'expense',
     member_name: '',
+    target_member_ids: [] as number[],
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +71,23 @@ export default function AccountingModal({ isOpen, onClose, projectId, onAccounti
     }
   };
 
+  const handleTargetMemberChange = (memberId: number, checked: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      target_member_ids: checked 
+        ? [...prev.target_member_ids, memberId]
+        : prev.target_member_ids.filter(id => id !== memberId)
+    }));
+    
+    // バリデーションエラーをクリア
+    if (validationErrors.target_member_ids) {
+      setValidationErrors(prev => ({
+        ...prev,
+        target_member_ids: ''
+      }));
+    }
+  };
+
   const validateForm = () => {
     const errors: Record<string, string> = {};
 
@@ -69,6 +105,10 @@ export default function AccountingModal({ isOpen, onClose, projectId, onAccounti
       errors.member_name = 'メンバー名は必須です';
     }
 
+    if (formData.target_member_ids.length === 0) {
+      errors.target_member_ids = '対象メンバーを選択してください';
+    }
+
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -84,27 +124,20 @@ export default function AccountingModal({ isOpen, onClose, projectId, onAccounti
     setError(null);
 
     try {
-      const response = await fetch(`/api/projects/${projectId}/accountings`, {
+      const requestData = {
+        accounting_name: formData.accounting_name.trim(),
+        amount: Number(formData.amount),
+        description: formData.description.trim() || undefined,
+        accounting_type: formData.accounting_type,
+        member_name: formData.member_name.trim(),
+        target_member_ids: formData.target_member_ids,
+      };
+
+      const data = await apiFetch<{ accounting: Accounting }>(`/api/projects/${projectId}/accountings`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-        },
-        body: JSON.stringify({
-          accounting_name: formData.accounting_name.trim(),
-          amount: Number(formData.amount),
-          description: formData.description.trim() || undefined,
-          accounting_type: formData.accounting_type,
-          member_name: formData.member_name.trim(),
-        }),
+        body: JSON.stringify(requestData),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || '会計の追加に失敗しました');
-      }
-
-      const data = await response.json();
       onAccountingAdded(data.accounting);
       
       // フォームをリセット
@@ -114,6 +147,7 @@ export default function AccountingModal({ isOpen, onClose, projectId, onAccounti
         description: '',
         accounting_type: 'expense',
         member_name: '',
+        target_member_ids: [],
       });
       
       onClose();
@@ -132,6 +166,7 @@ export default function AccountingModal({ isOpen, onClose, projectId, onAccounti
       description: '',
       accounting_type: 'expense',
       member_name: '',
+      target_member_ids: [],
     });
     setValidationErrors({});
     setError(null);
@@ -166,8 +201,7 @@ export default function AccountingModal({ isOpen, onClose, projectId, onAccounti
               <label htmlFor="member_name" className="block text-sm font-medium text-gray-700 mb-1">
                 メンバー名 <span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
+              <select
                 id="member_name"
                 name="member_name"
                 value={formData.member_name}
@@ -175,11 +209,45 @@ export default function AccountingModal({ isOpen, onClose, projectId, onAccounti
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                   validationErrors.member_name ? 'border-red-500' : 'border-gray-300'
                 }`}
-                placeholder="例: 田中太郎、山田花子など"
                 required
-              />
+              >
+                <option value="">メンバーを選択してください</option>
+                {members.map((member) => (
+                  <option key={member.project_member_id} value={member.name}>
+                    {member.name} {member.is_guest ? '(ゲスト)' : ''}
+                  </option>
+                ))}
+              </select>
               {validationErrors.member_name && (
                 <p className="mt-1 text-sm text-red-600">{validationErrors.member_name}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                対象メンバー <span className="text-red-500">*</span>
+              </label>
+              <div className={`border rounded-md p-3 ${
+                validationErrors.target_member_ids ? 'border-red-500' : 'border-gray-300'
+              }`}>
+                <div className="grid grid-cols-2 gap-2">
+                  {members.map((member) => (
+                    <label key={member.project_member_id} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={formData.target_member_ids.includes(member.id)}
+                        onChange={(e) => handleTargetMemberChange(member.id, e.target.checked)}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-700">
+                        {member.name} {member.is_guest ? '(ゲスト)' : ''}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              {validationErrors.target_member_ids && (
+                <p className="mt-1 text-sm text-red-600">{validationErrors.target_member_ids}</p>
               )}
             </div>
 

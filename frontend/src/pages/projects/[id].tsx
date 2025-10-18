@@ -26,6 +26,7 @@ interface Accounting {
   breakdown?: string;
   payment_id?: string;
   memo?: string;
+  target_members?: string[];
   del_flg: boolean;
   created_at: string;
   updated_at: string;
@@ -43,6 +44,7 @@ interface Member {
   email?: string;
   is_guest: boolean;
   joined_at: string;
+  total_expense: number;
 }
 
 export default function ProjectDetail() {
@@ -87,7 +89,8 @@ export default function ProjectDetail() {
       setAccountings(response.accountings);
     } catch (err: any) {
       console.error('会計一覧取得エラー:', err);
-      // エラーは表示しない（会計がない場合もあるため）
+      // エラーを表示する（デバッグ用）
+      setError(`会計一覧の取得に失敗しました: ${err.message}`);
     }
   };
 
@@ -279,6 +282,18 @@ export default function ProjectDetail() {
                             {accounting.breakdown && (
                               <p className="text-sm text-gray-600 mt-1">{accounting.breakdown}</p>
                             )}
+                            {accounting.target_members && accounting.target_members.length > 0 && (
+                              <div className="mt-2">
+                                <span className="text-xs text-gray-500">対象メンバー:</span>
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {accounting.target_members.map((memberName, index) => (
+                                    <span key={index} className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
+                                      {memberName}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                             <p className="text-xs text-gray-500 mt-2">
                               {accounting.task_member_name} • {new Date(accounting.created_at).toLocaleDateString('ja-JP')}
                             </p>
@@ -328,7 +343,7 @@ export default function ProjectDetail() {
                   会計を追加
                 </button>
                 <button
-                  onClick={() => router.push(`/calculator?project=${project.project_id}`)}
+                  onClick={() => router.push(`/split-result?projectId=${project.project_id}`)}
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
                 >
                   割り勘計算を開始
@@ -394,6 +409,7 @@ export default function ProjectDetail() {
           isOpen={showAccountingModal}
           onClose={() => setShowAccountingModal(false)}
           projectId={project.project_id}
+          members={members}
           onAccountingAdded={handleAccountingAdded}
         />
       )}

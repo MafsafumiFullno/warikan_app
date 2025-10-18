@@ -42,4 +42,15 @@ class ProjectMember extends Model
     {
         return $this->belongsTo(ProjectRole::class, 'role_id');
     }
+
+    public function taskMembers()
+    {
+        return $this->hasMany(ProjectTaskMember::class, 'member_id');
+    }
+
+    public function tasks()
+    {
+        return $this->belongsToMany(ProjectTask::class, 'project_task_members', 'member_id', 'task_id')
+                    ->where('project_task_members.del_flg', false);
+    }
 }

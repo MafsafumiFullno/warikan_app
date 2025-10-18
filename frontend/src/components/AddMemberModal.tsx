@@ -13,6 +13,7 @@ interface Member {
   email?: string;
   is_guest: boolean;
   joined_at: string;
+  total_expense: number;
 }
 
 interface AddMemberModalProps {

@@ -14,6 +14,7 @@ interface Member {
   email?: string;
   is_guest: boolean;
   joined_at: string;
+  total_expense: number;
 }
 
 interface MembersListProps {
@@ -61,7 +62,8 @@ export default function MembersList({
   };
 
   const handleMemberAdded = (newMember: Member) => {
-    setMembers(prev => [...prev, newMember]);
+    // メンバー一覧を再取得して最新の状態を反映
+    fetchMembers();
     onMemberAdded?.(newMember);
     setShowAddForm(false);
   };
@@ -249,45 +251,53 @@ export default function MembersList({
                   <p className="text-xs text-gray-500 mt-1">
                     参加日: {new Date(member.joined_at).toLocaleDateString('ja-JP')}
                   </p>
-                  <div className="flex items-center space-x-2 mt-2">
-                    <span className="text-xs text-gray-500">割り勘比重:</span>
-                    {editingWeight === member.id ? (
-                      <div className="flex items-center space-x-1">
-                        <input
-                          type="number"
-                          value={weightValue}
-                          onChange={(e) => setWeightValue(e.target.value)}
-                          className="w-16 px-1 py-0.5 text-xs border border-gray-300 rounded"
-                          min="0.01"
-                          max="999.99"
-                          step="0.01"
-                        />
-                        <button
-                          onClick={() => handleWeightUpdate(member.id, parseFloat(weightValue))}
-                          className="text-xs bg-blue-600 text-white px-2 py-0.5 rounded hover:bg-blue-700"
-                        >
-                          保存
-                        </button>
-                        <button
-                          onClick={cancelWeightEdit}
-                          className="text-xs bg-gray-600 text-white px-2 py-0.5 rounded hover:bg-gray-700"
-                        >
-                          キャンセル
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center space-x-1">
-                        <span className="text-sm font-medium">{member.split_weight}</span>
-                        {isOwner && (
+                  <div className="flex items-center space-x-4 mt-2">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs text-gray-500">割り勘比重:</span>
+                      {editingWeight === member.id ? (
+                        <div className="flex items-center space-x-1">
+                          <input
+                            type="number"
+                            value={weightValue}
+                            onChange={(e) => setWeightValue(e.target.value)}
+                            className="w-16 px-1 py-0.5 text-xs border border-gray-300 rounded"
+                            min="0.01"
+                            max="999.99"
+                            step="0.01"
+                          />
                           <button
-                            onClick={() => startWeightEdit(member.id, member.split_weight)}
-                            className="text-xs text-blue-600 hover:text-blue-800"
+                            onClick={() => handleWeightUpdate(member.id, parseFloat(weightValue))}
+                            className="text-xs bg-blue-600 text-white px-2 py-0.5 rounded hover:bg-blue-700"
                           >
-                            編集
+                            保存
                           </button>
-                        )}
-                      </div>
-                    )}
+                          <button
+                            onClick={cancelWeightEdit}
+                            className="text-xs bg-gray-600 text-white px-2 py-0.5 rounded hover:bg-gray-700"
+                          >
+                            キャンセル
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center space-x-1">
+                          <span className="text-sm font-medium">{member.split_weight}</span>
+                          {isOwner && (
+                            <button
+                              onClick={() => startWeightEdit(member.id, member.split_weight)}
+                              className="text-xs text-blue-600 hover:text-blue-800"
+                            >
+                              編集
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs text-gray-500">支出合計:</span>
+                      <span className="text-sm font-semibold text-red-600">
+                        ¥{(member.total_expense || 0).toLocaleString()}
+                      </span>
+                    </div>
                   </div>
                   {member.memo && (
                     <div className="mt-2">

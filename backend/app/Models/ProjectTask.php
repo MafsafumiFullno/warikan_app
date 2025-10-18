@@ -17,6 +17,7 @@ class ProjectTask extends Model
         'task_name',
         'task_member_name',
         'customer_id',
+        'member_id',
         'accounting_amount',
         'accounting_type',
         'breakdown',
@@ -35,8 +36,24 @@ class ProjectTask extends Model
         return $this->belongsTo(Project::class, 'project_id');
     }
 
+    public function projectMember()
+    {
+        return $this->belongsTo(ProjectMember::class, 'member_id');
+    }
+
     public function customer()
     {
         return $this->belongsTo(Customer::class, 'customer_id');
+    }
+
+    public function taskMembers()
+    {
+        return $this->hasMany(ProjectTaskMember::class, 'task_id');
+    }
+
+    public function members()
+    {
+        return $this->belongsToMany(ProjectMember::class, 'project_task_members', 'task_id', 'member_id')
+                    ->where('project_task_members.del_flg', false);
     }
 }
