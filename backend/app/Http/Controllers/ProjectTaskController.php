@@ -2,15 +2,23 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ProjectTask;
-use App\Models\Project;
-use Illuminate\Http\Request;
+use App\Services\ProjectTaskService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Http\Request;
+use Psr\Log\LoggerInterface;
 
 class ProjectTaskController extends Controller
 {
+    protected ProjectTaskService $projectTaskService;
+    protected LoggerInterface $logger;
+
+    public function __construct(
+        ProjectTaskService $projectTaskService,
+        LoggerInterface $logger
+    ) {
+        $this->projectTaskService = $projectTaskService;
+        $this->logger = $logger;
+    }
     /**
      * プロジェクトの会計一覧を取得
      */
@@ -18,74 +26,22 @@ class ProjectTaskController extends Controller
     {
         try {
             $customer = $request->user();
+            $result = $this->projectTaskService->getProjectTasks($customer->customer_id, $projectId);
 
-            $project = Project::where('project_id', $projectId)
-                ->where('del_flg', false)
-                ->first();
-            
-            if (!$project) {
-                return response()->json([
-                    'message' => 'プロジェクトが見つかりません'
-                ], 404);
-            }
-
-            // プロジェクトのオーナーまたはメンバーかチェック
-            $isOwner = $project->customer_id === $customer->customer_id;
-            $isMember = \App\Models\ProjectMember::where('project_id', $projectId)
-                                                ->where('customer_id', $customer->customer_id)
-                                                ->where('del_flg', false)
-                                                ->exists();
-            
-            if (!$isOwner && !$isMember) {
-                return response()->json([
-                    'message' => 'アクセス権限がありません'
-                ], 403);
-            }
-
-            $projectTasks = ProjectTask::where('project_id', $projectId)
-                ->where('del_flg', false)
-                ->with(['taskMembers.projectMember.customer'])
-                ->orderBy('created_at', 'desc')
-                ->get()
-                ->map(function ($task) {
-                    // 対象メンバーの名前とIDを取得
-                    $targetMembers = $task->taskMembers->map(function ($taskMember) {
-                        $member = $taskMember->projectMember;
-                        if (!$member) return null;
-                        
-                        $memberName = $member->customer_id 
-                            ? ($member->customer->nick_name ?: trim($member->customer->first_name . ' ' . $member->customer->last_name) ?: 'メンバー')
-                            : $member->member_name;
-                        
-                        return [
-                            'id' => $member->id,
-                            'name' => $memberName
-                        ];
-                    })->filter()->toArray();
-                    
-                    $taskArray = $task->toArray();
-                    $taskArray['target_members'] = array_column($targetMembers, 'name');
-                    $taskArray['target_member_ids'] = array_column($targetMembers, 'id');
-                    
-                    return $taskArray;
-                });
-
-            return response()->json([
-                'accountings' => $projectTasks
-            ], 200);
-
+            return response()->json($result);
         } catch (\Exception $e) {
-            Log::error('会計一覧取得エラー', [
+            $this->logger->error('会計一覧取得エラー', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
                 'project_id' => $projectId,
                 'customer_id' => $request->user()?->customer_id
             ]);
-            
+
             return response()->json([
-                'message' => '会計一覧の取得に失敗しました',
+                'message' => $e->getMessage(),
                 'error' => config('app.debug') ? $e->getMessage() : 'サーバーエラーが発生しました'
-            ], 500);
+            ], $e->getMessage() === 'プロジェクトが見つかりません' ? 404 : 
+               ($e->getMessage() === 'アクセス権限がありません' ? 403 : 500));
         }
     }
 
@@ -95,92 +51,29 @@ class ProjectTaskController extends Controller
     public function store(Request $request, int $projectId): JsonResponse
     {
         try {
-            $project = Project::findOrFail($projectId);
-            
-            // プロジェクトの所有者かチェック
-            if ($project->customer_id !== $request->user()->customer_id) {
-                return response()->json([
-                    'message' => 'アクセス権限がありません'
-                ], 403);
-            }
+            $customer = $request->user();
+            $result = $this->projectTaskService->createProjectTask($customer->customer_id, $projectId, $request->all());
 
-            $validator = Validator::make($request->all(), [
-                'accounting_name' => 'required|string|max:255',
-                'amount' => 'required|numeric|min:0.01',
-                'description' => 'nullable|string|max:1000',
-                'accounting_type' => 'nullable|string|max:50',
-                'member_name' => 'required|string|max:255',
-                'target_member_ids' => 'nullable|array',
-                'target_member_ids.*' => 'integer|exists:project_members,id',
+            return response()->json($result, 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'バリデーションエラー',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            $this->logger->error('会計追加エラー', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'project_id' => $projectId,
+                'customer_id' => $request->user()?->customer_id,
+                'request_data' => $request->all()
             ]);
 
-            if ($validator->fails()) {
-                return response()->json([
-                    'message' => 'バリデーションエラー',
-                    'errors' => $validator->errors(),
-                ], 422);
-            }
-
-            // プロジェクトタスクコードを生成（既存の最大値+1）
-            $maxTaskCode = $project->projectTasks()->max('project_task_code') ?? 0;
-            $nextTaskCode = $maxTaskCode + 1;
-
-            // 支払人（task_member_name）のプロジェクトメンバーIDを取得
-            $payerMember = \App\Models\ProjectMember::where('project_id', $projectId)
-                ->where('member_name', $request->member_name)
-                ->where('del_flg', false)
-                ->first();
-
-            // オーナーの名前を取得（オーナーが支払った場合の判定用）
-            $owner = $project->customer;
-            $ownerName = trim($owner->first_name . ' ' . $owner->last_name) ?: $owner->nick_name ?: 'オーナー';
-
-            $projectTaskData = [
-                'project_id' => $projectId,
-                'project_task_code' => $nextTaskCode,
-                'task_name' => $request->accounting_name,
-                'task_member_name' => $request->member_name,
-                'accounting_amount' => $request->amount,
-                'accounting_type' => $request->accounting_type ?? 'expense',
-                'breakdown' => $request->description,
-                'memo' => null,
-                'del_flg' => false,
-            ];
-
-            // 支払人がproject_membersテーブルに登録されている場合はmember_idを使用
-            if ($payerMember) {
-                $projectTaskData['member_id'] = $payerMember->id;
-            } elseif ($request->member_name === $ownerName) {
-                // 支払人がオーナーの場合はcustomer_idを使用
-                $projectTaskData['customer_id'] = $owner->customer_id;
-            } else {
-                // その他の場合（ゲストメンバーなど）はcustomer_idを使用
-                $projectTaskData['customer_id'] = $request->user()->customer_id;
-            }
-
-            $projectTask = ProjectTask::create($projectTaskData);
-
-            // 対象メンバーをproject_task_membersテーブルに追加（target_member_idsが提供されている場合のみ）
-            if ($request->has('target_member_ids') && is_array($request->target_member_ids)) {
-                foreach ($request->target_member_ids as $memberId) {
-                    \App\Models\ProjectTaskMember::create([
-                        'member_id' => $memberId,
-                        'task_id' => $projectTask->task_id,
-                        'del_flg' => false,
-                    ]);
-                }
-            }
-
             return response()->json([
-                'message' => '会計を追加しました',
-                'accounting' => $projectTask
-            ], 201);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => '会計の追加に失敗しました',
+                'message' => $e->getMessage(),
                 'error' => config('app.debug') ? $e->getMessage() : 'サーバーエラーが発生しました'
-            ], 500);
+            ], $e->getMessage() === 'プロジェクトが見つかりません' ? 404 : 
+               ($e->getMessage() === 'アクセス権限がありません' ? 403 : 500));
         }
     }
 
@@ -190,71 +83,31 @@ class ProjectTaskController extends Controller
     public function update(Request $request, int $projectId, int $taskId): JsonResponse
     {
         try {
-            $project = Project::findOrFail($projectId);
-            
-            // プロジェクトの所有者かチェック
-            if ($project->customer_id !== $request->user()->customer_id) {
-                return response()->json([
-                    'message' => 'アクセス権限がありません'
-                ], 403);
-            }
+            $customer = $request->user();
+            $result = $this->projectTaskService->updateProjectTask($customer->customer_id, $projectId, $taskId, $request->all());
 
-            $projectTask = ProjectTask::where('project_id', $projectId)
-                ->where('task_id', $taskId)
-                ->where('del_flg', false)
-                ->firstOrFail();
-
-            $validator = Validator::make($request->all(), [
-                'accounting_name' => 'required|string|max:255',
-                'amount' => 'required|numeric|min:0.01',
-                'description' => 'nullable|string|max:1000',
-                'accounting_type' => 'nullable|string|max:50',
-                'member_name' => 'required|string|max:255',
-                'target_member_ids' => 'nullable|array',
-                'target_member_ids.*' => 'integer|exists:project_members,id',
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'message' => 'バリデーションエラー',
-                    'errors' => $validator->errors(),
-                ], 422);
-            }
-
-            $projectTask->update([
-                'task_name' => $request->accounting_name,
-                'task_member_name' => $request->member_name,
-                'accounting_amount' => $request->amount,
-                'accounting_type' => $request->accounting_type ?? 'expense',
-                'breakdown' => $request->description,
-            ]);
-
-            // 対象メンバーを更新（target_member_idsが提供されている場合のみ）
-            if ($request->has('target_member_ids') && is_array($request->target_member_ids)) {
-                // 既存の対象メンバーを論理削除
-                \App\Models\ProjectTaskMember::where('task_id', $taskId)
-                    ->update(['del_flg' => true]);
-
-                // 新しい対象メンバーを追加
-                foreach ($request->target_member_ids as $memberId) {
-                    \App\Models\ProjectTaskMember::create([
-                        'member_id' => $memberId,
-                        'task_id' => $taskId,
-                        'del_flg' => false,
-                    ]);
-                }
-            }
-
+            return response()->json($result);
+        } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
-                'message' => '会計を更新しました',
-                'accounting' => $projectTask->fresh()
-            ], 200);
-
+                'message' => 'バリデーションエラー',
+                'errors' => $e->errors()
+            ], 422);
         } catch (\Exception $e) {
+            $this->logger->error('会計更新エラー', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'project_id' => $projectId,
+                'task_id' => $taskId,
+                'customer_id' => $request->user()?->customer_id,
+                'request_data' => $request->all()
+            ]);
+
             return response()->json([
-                'message' => '会計の更新に失敗しました',
+                'message' => $e->getMessage(),
                 'error' => config('app.debug') ? $e->getMessage() : 'サーバーエラーが発生しました'
-            ], 500);
+            ], $e->getMessage() === 'プロジェクトが見つかりません' ? 404 : 
+               ($e->getMessage() === 'アクセス権限がありません' ? 403 : 
+               ($e->getMessage() === '会計が見つかりません' ? 404 : 500)));
         }
     }
 
@@ -264,31 +117,25 @@ class ProjectTaskController extends Controller
     public function destroy(Request $request, int $projectId, int $taskId): JsonResponse
     {
         try {
-            $project = Project::findOrFail($projectId);
-            
-            // プロジェクトの所有者かチェック
-            if ($project->customer_id !== $request->user()->customer_id) {
-                return response()->json([
-                    'message' => 'アクセス権限がありません'
-                ], 403);
-            }
+            $customer = $request->user();
+            $result = $this->projectTaskService->deleteProjectTask($customer->customer_id, $projectId, $taskId);
 
-            $projectTask = ProjectTask::where('project_id', $projectId)
-                ->where('task_id', $taskId)
-                ->where('del_flg', false)
-                ->firstOrFail();
-
-            $projectTask->update(['del_flg' => true]);
-
-            return response()->json([
-                'message' => '会計を削除しました'
-            ], 200);
-
+            return response()->json($result);
         } catch (\Exception $e) {
+            $this->logger->error('会計削除エラー', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'project_id' => $projectId,
+                'task_id' => $taskId,
+                'customer_id' => $request->user()?->customer_id
+            ]);
+
             return response()->json([
-                'message' => '会計の削除に失敗しました',
+                'message' => $e->getMessage(),
                 'error' => config('app.debug') ? $e->getMessage() : 'サーバーエラーが発生しました'
-            ], 500);
+            ], $e->getMessage() === 'プロジェクトが見つかりません' ? 404 : 
+               ($e->getMessage() === 'アクセス権限がありません' ? 403 : 
+               ($e->getMessage() === '会計が見つかりません' ? 404 : 500)));
         }
     }
 }
