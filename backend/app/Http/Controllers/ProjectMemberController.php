@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\ProjectMemberService;
+use App\Services\Project\ProjectMemberService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Psr\Log\LoggerInterface;

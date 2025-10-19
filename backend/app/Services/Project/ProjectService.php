@@ -1,28 +1,16 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Project;
 
 use App\Models\CustomerSplitMethod;
 use App\Models\Project;
 use App\Models\ProjectMember;
 use App\Models\ProjectRole;
-use Illuminate\Contracts\Validation\Factory as ValidationFactory;
+use App\Services\BaseService;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\ValidationException;
-use Psr\Log\LoggerInterface;
 
-class ProjectService
+class ProjectService extends BaseService
 {
-    protected ValidationFactory $validationFactory;
-    protected LoggerInterface $logger;
-
-    public function __construct(
-        ValidationFactory $validationFactory,
-        LoggerInterface $logger
-    ) {
-        $this->validationFactory = $validationFactory;
-        $this->logger = $logger;
-    }
 
     /**
      * プロジェクト一覧を取得
@@ -70,25 +58,20 @@ class ProjectService
      */
     public function createProject($customerId, array $data): array
     {
-        $this->logger->info('プロジェクト作成開始', [
+        $this->logInfo('プロジェクト作成開始', [
             'customer_id' => $customerId,
             'request_data' => $data
         ]);
 
         // バリデーション
-        $validator = $this->validationFactory->make($data, [
+        $validated = $this->validateData($data, [
             'project_name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'project_status' => ['nullable', 'string', Rule::in(['draft', 'active', 'completed', 'archived'])],
             'split_method_id' => ['nullable', 'integer'],
         ]);
 
-        if ($validator->fails()) {
-            throw ValidationException::withMessages($validator->errors()->toArray());
-        }
-
-        $validated = $validator->validated();
-        $this->logger->info('バリデーション完了', ['validated_data' => $validated]);
+        $this->logInfo('バリデーション完了', ['validated_data' => $validated]);
 
         // 割り勘方法の存在確認
         if (isset($validated['split_method_id'])) {
@@ -108,11 +91,9 @@ class ProjectService
         // プロジェクト作成者をオーナーとしてメンバーに追加
         $this->addOwnerAsMember($project);
 
-        $this->logger->info('プロジェクト作成完了', ['project_id' => $project->project_id]);
+        $this->logInfo('プロジェクト作成完了', ['project_id' => $project->project_id]);
 
-        return [
-            'project' => $project
-        ];
+        return $this->successResponse('プロジェクトを作成しました', ['project' => $project]);
     }
 
     /**
@@ -120,31 +101,19 @@ class ProjectService
      */
     public function getProjectWithAccessCheck($customerId, int $projectId): array
     {
-        // プロジェクトの存在確認
-        $project = Project::where('project_id', $projectId)
-            ->where('del_flg', false)
-            ->first();
+        $project = $this->validateProjectAccess($customerId, $projectId);
         
-        if (!$project) {
-            throw new \Exception('プロジェクトが見つかりません。');
-        }
-
-        // プロジェクトのオーナーまたはメンバーかチェック
         $isOwner = $project->customer_id === $customerId;
         $isMember = ProjectMember::where('project_id', $projectId)
                                 ->where('customer_id', $customerId)
                                 ->where('del_flg', false)
                                 ->exists();
-        
-        if (!$isOwner && !$isMember) {
-            throw new \Exception('アクセス権限がありません。');
-        }
 
-        return [
+        return $this->successResponse('プロジェクトを取得しました', [
             'project' => $project,
             'isOwner' => $isOwner,
             'isMember' => $isMember
-        ];
+        ]);
     }
 
     /**
@@ -163,18 +132,12 @@ class ProjectService
         }
 
         // バリデーション
-        $validator = $this->validationFactory->make($data, [
+        $validated = $this->validateData($data, [
             'project_name' => ['sometimes', 'required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'project_status' => ['sometimes', 'required', 'string', Rule::in(['draft', 'active', 'completed', 'archived'])],
             'split_method_id' => ['nullable', 'integer'],
         ]);
-
-        if ($validator->fails()) {
-            throw ValidationException::withMessages($validator->errors()->toArray());
-        }
-
-        $validated = $validator->validated();
 
         // 割り勘方法の存在確認
         if (array_key_exists('split_method_id', $validated) && !is_null($validated['split_method_id'])) {
@@ -185,9 +148,7 @@ class ProjectService
         $project->fill($validated);
         $project->save();
 
-        return [
-            'project' => $project
-        ];
+        return $this->successResponse('プロジェクトを更新しました', ['project' => $project]);
     }
 
     /**
@@ -204,12 +165,9 @@ class ProjectService
             throw new \Exception('プロジェクトが見つかりません。');
         }
 
-        $project->del_flg = true;
-        $project->save();
+        $this->softDelete($project);
 
-        return [
-            'message' => '削除しました。'
-        ];
+        return $this->successResponse('プロジェクトを削除しました');
     }
 
     /**

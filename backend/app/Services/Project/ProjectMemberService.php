@@ -1,32 +1,16 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Project;
 
 use App\Models\Project;
 use App\Models\Customer;
 use App\Models\ProjectMember;
 use App\Models\ProjectRole;
 use App\Models\ProjectTask;
-use Illuminate\Contracts\Validation\Factory as ValidationFactory;
-use Illuminate\Database\ConnectionInterface;
-use Illuminate\Validation\ValidationException;
-use Psr\Log\LoggerInterface;
+use App\Services\BaseService;
 
-class ProjectMemberService
+class ProjectMemberService extends BaseService
 {
-    protected ValidationFactory $validationFactory;
-    protected ConnectionInterface $db;
-    protected LoggerInterface $logger;
-
-    public function __construct(
-        ValidationFactory $validationFactory,
-        ConnectionInterface $db,
-        LoggerInterface $logger
-    ) {
-        $this->validationFactory = $validationFactory;
-        $this->db = $db;
-        $this->logger = $logger;
-    }
 
     /**
      * プロジェクトのメンバー一覧を取得
@@ -45,9 +29,7 @@ class ProjectMemberService
                                   return $this->formatMemberData($member, $projectId);
                               });
 
-        return [
-            'members' => $members
-        ];
+        return $this->successResponse('メンバー一覧を取得しました', ['members' => $members]);
     }
 
     /**
@@ -55,30 +37,22 @@ class ProjectMemberService
      */
     public function addProjectMember($customerId, int $projectId, array $data): array
     {
-        $this->logger->info('メンバー追加開始', [
+        $this->logInfo('メンバー追加開始', [
             'customer_id' => $customerId,
             'project_id' => $projectId,
             'request_data' => $data
         ]);
 
         // バリデーション
-        $validator = $this->validationFactory->make($data, [
+        $validated = $this->validateData($data, [
             'name' => 'required|string|max:255',
             'email' => 'nullable|email|max:255',
         ]);
 
-        if ($validator->fails()) {
-            throw ValidationException::withMessages($validator->errors()->toArray());
-        }
-
-        $validated = $validator->validated();
-
         // プロジェクトの存在確認とオーナー権限チェック
         $this->validateOwnerAccess($customerId, $projectId);
 
-        $this->db->beginTransaction();
-
-        try {
+        return $this->executeInTransaction(function () use ($projectId, $validated) {
             $email = $validated['email'] ?? null;
             $name = $validated['name'];
 
@@ -91,22 +65,15 @@ class ProjectMemberService
             // メンバーとして追加
             $member = $this->createProjectMember($projectId, $customerId, $name, $email);
 
-            $this->db->commit();
-
-            $this->logger->info('メンバー追加完了', [
+            $this->logInfo('メンバー追加完了', [
                 'project_id' => $projectId,
                 'member_id' => $member->id
             ]);
 
-            return [
-                'message' => 'メンバーが正常に追加されました',
+            return $this->successResponse('メンバーが正常に追加されました', [
                 'member' => $this->formatMemberData($member, $projectId)
-            ];
-
-        } catch (\Exception $e) {
-            $this->db->rollBack();
-            throw $e;
-        }
+            ]);
+        });
     }
 
     /**
@@ -115,25 +82,20 @@ class ProjectMemberService
     public function updateMemberMemo($customerId, int $projectId, int $memberId, array $data): array
     {
         // バリデーション
-        $validator = $this->validationFactory->make($data, [
+        $validated = $this->validateData($data, [
             'memo' => 'nullable|string|max:1000',
         ]);
-
-        if ($validator->fails()) {
-            throw ValidationException::withMessages($validator->errors()->toArray());
-        }
 
         // オーナー権限チェック
         $this->validateOwnerAccess($customerId, $projectId);
 
         // メンバーを更新
-        $projectMember = $this->getProjectMember($projectId, $memberId);
-        $projectMember->update(['memo' => $data['memo'] ?? null]);
+        $projectMember = $this->getProjectMemberById($projectId, $memberId);
+        $projectMember->update(['memo' => $validated['memo'] ?? null]);
 
-        return [
-            'message' => 'メモが正常に更新されました',
+        return $this->successResponse('メモが正常に更新されました', [
             'memo' => $projectMember->memo
-        ];
+        ]);
     }
 
     /**
@@ -142,25 +104,20 @@ class ProjectMemberService
     public function updateMemberWeight($customerId, int $projectId, int $memberId, array $data): array
     {
         // バリデーション
-        $validator = $this->validationFactory->make($data, [
+        $validated = $this->validateData($data, [
             'split_weight' => 'required|numeric|min:0.01|max:999.99',
         ]);
-
-        if ($validator->fails()) {
-            throw ValidationException::withMessages($validator->errors()->toArray());
-        }
 
         // オーナー権限チェック
         $this->validateOwnerAccess($customerId, $projectId);
 
         // メンバーを更新
-        $projectMember = $this->getProjectMemberByProjectMemberId($projectId, $memberId);
-        $projectMember->update(['split_weight' => $data['split_weight']]);
+        $projectMember = $this->getProjectMemberByProjectMemberIdLocal($projectId, $memberId);
+        $projectMember->update(['split_weight' => $validated['split_weight']]);
 
-        return [
-            'message' => '割り勘比重が正常に更新されました',
+        return $this->successResponse('割り勘比重が正常に更新されました', [
             'split_weight' => $projectMember->split_weight
-        ];
+        ]);
     }
 
     /**
@@ -172,59 +129,12 @@ class ProjectMemberService
         $this->validateOwnerAccess($customerId, $projectId);
 
         // メンバーを論理削除
-        $projectMember = $this->getProjectMemberByProjectMemberId($projectId, $memberId);
-        $projectMember->update(['del_flg' => true]);
+        $projectMember = $this->getProjectMemberByProjectMemberIdLocal($projectId, $memberId);
+        $this->softDelete($projectMember);
 
-        return [
-            'message' => 'メンバーが正常に削除されました'
-        ];
+        return $this->successResponse('メンバーが正常に削除されました');
     }
 
-    /**
-     * プロジェクトのアクセス権限をチェック
-     */
-    private function validateProjectAccess($customerId, int $projectId): void
-    {
-        $project = Project::where('project_id', $projectId)
-            ->where('del_flg', false)
-            ->first();
-        
-        if (!$project) {
-            throw new \Exception('プロジェクトが見つかりません');
-        }
-
-        // プロジェクトのオーナーまたはメンバーかチェック
-        $isOwner = $project->customer_id === $customerId;
-        $isMember = ProjectMember::where('project_id', $projectId)
-                                ->where('customer_id', $customerId)
-                                ->where('del_flg', false)
-                                ->exists();
-        
-        if (!$isOwner && !$isMember) {
-            throw new \Exception('アクセス権限がありません');
-        }
-    }
-
-    /**
-     * プロジェクトのオーナー権限をチェック
-     */
-    private function validateOwnerAccess($customerId, int $projectId): void
-    {
-        $ownerRole = ProjectRole::where('role_code', 'owner')->first();
-        if (!$ownerRole) {
-            throw new \Exception('オーナーロールが見つかりません');
-        }
-
-        $isOwner = ProjectMember::where('project_id', $projectId)
-                               ->where('customer_id', $customerId)
-                               ->where('role_id', $ownerRole->role_id)
-                               ->where('del_flg', false)
-                               ->exists();
-        
-        if (!$isOwner) {
-            throw new \Exception('オーナー権限がありません');
-        }
-    }
 
     /**
      * メンバーの重複をチェック
@@ -308,7 +218,7 @@ class ProjectMemberService
     /**
      * プロジェクトメンバーを取得（IDで）
      */
-    private function getProjectMember(int $projectId, int $memberId): ProjectMember
+    private function getProjectMemberById(int $projectId, int $memberId): ProjectMember
     {
         $projectMember = ProjectMember::where('id', $memberId)
                                      ->where('project_id', $projectId)
@@ -325,7 +235,7 @@ class ProjectMemberService
     /**
      * プロジェクトメンバーを取得（project_member_idで）
      */
-    private function getProjectMemberByProjectMemberId(int $projectId, int $memberId): ProjectMember
+    private function getProjectMemberByProjectMemberIdLocal(int $projectId, int $memberId): ProjectMember
     {
         $projectMember = ProjectMember::where('project_member_id', $memberId)
                                      ->where('project_id', $projectId)
@@ -344,10 +254,7 @@ class ProjectMemberService
      */
     private function formatMemberData(ProjectMember $member, int $projectId): array
     {
-        $memberName = $member->customer_id 
-            ? ($member->customer->nick_name ?: 
-               ($member->customer->first_name . ' ' . $member->customer->last_name))
-            : $member->member_name;
+        $memberName = $this->getMemberName($member);
         
         // メンバーの支出合計を計算
         $totalExpense = ProjectTask::where('project_id', $projectId)
@@ -372,7 +279,7 @@ class ProjectMemberService
                 ? $member->customer->is_guest 
                 : true,
             'joined_at' => $member->created_at,
-            'total_expense' => (float) $totalExpense,
+            'total_expense' => $this->roundAmount((float) $totalExpense),
         ];
     }
 }

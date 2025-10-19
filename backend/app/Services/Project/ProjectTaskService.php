@@ -1,31 +1,15 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Project;
 
 use App\Models\Project;
 use App\Models\ProjectTask;
 use App\Models\ProjectMember;
 use App\Models\ProjectTaskMember;
-use Illuminate\Contracts\Validation\Factory as ValidationFactory;
-use Illuminate\Database\ConnectionInterface;
-use Illuminate\Validation\ValidationException;
-use Psr\Log\LoggerInterface;
+use App\Services\BaseService;
 
-class ProjectTaskService
+class ProjectTaskService extends BaseService
 {
-    protected ValidationFactory $validationFactory;
-    protected ConnectionInterface $db;
-    protected LoggerInterface $logger;
-
-    public function __construct(
-        ValidationFactory $validationFactory,
-        ConnectionInterface $db,
-        LoggerInterface $logger
-    ) {
-        $this->validationFactory = $validationFactory;
-        $this->db = $db;
-        $this->logger = $logger;
-    }
 
     /**
      * プロジェクトの会計一覧を取得
@@ -44,9 +28,7 @@ class ProjectTaskService
                 return $this->formatTaskData($task);
             });
 
-        return [
-            'accountings' => $projectTasks
-        ];
+        return $this->successResponse('会計一覧を取得しました', ['accountings' => $projectTasks]);
     }
 
     /**
@@ -54,14 +36,14 @@ class ProjectTaskService
      */
     public function createProjectTask($customerId, int $projectId, array $data): array
     {
-        $this->logger->info('会計追加開始', [
+        $this->logInfo('会計追加開始', [
             'customer_id' => $customerId,
             'project_id' => $projectId,
             'request_data' => $data
         ]);
 
         // バリデーション
-        $validator = $this->validationFactory->make($data, [
+        $validated = $this->validateData($data, [
             'accounting_name' => 'required|string|max:255',
             'amount' => 'required|numeric|min:0.01',
             'description' => 'nullable|string|max:1000',
@@ -71,18 +53,10 @@ class ProjectTaskService
             'target_member_ids.*' => 'integer|exists:project_members,id',
         ]);
 
-        if ($validator->fails()) {
-            throw ValidationException::withMessages($validator->errors()->toArray());
-        }
-
-        $validated = $validator->validated();
-
         // プロジェクトの存在確認とオーナー権限チェック
         $project = $this->validateOwnerAccess($customerId, $projectId);
 
-        $this->db->beginTransaction();
-
-        try {
+        return $this->executeInTransaction(function () use ($project, $projectId, $validated, $customerId) {
             // プロジェクトタスクコードを生成
             $nextTaskCode = $this->generateNextTaskCode($project);
 
@@ -100,22 +74,13 @@ class ProjectTaskService
                 $this->addTargetMembers($projectTask->task_id, $validated['target_member_ids']);
             }
 
-            $this->db->commit();
-
-            $this->logger->info('会計追加完了', [
+            $this->logInfo('会計追加完了', [
                 'project_id' => $projectId,
                 'task_id' => $projectTask->task_id
             ]);
 
-            return [
-                'message' => '会計を追加しました',
-                'accounting' => $projectTask
-            ];
-
-        } catch (\Exception $e) {
-            $this->db->rollBack();
-            throw $e;
-        }
+            return $this->successResponse('会計を追加しました', ['accounting' => $projectTask]);
+        });
     }
 
     /**
@@ -124,7 +89,7 @@ class ProjectTaskService
     public function updateProjectTask($customerId, int $projectId, int $taskId, array $data): array
     {
         // バリデーション
-        $validator = $this->validationFactory->make($data, [
+        $validated = $this->validateData($data, [
             'accounting_name' => 'required|string|max:255',
             'amount' => 'required|numeric|min:0.01',
             'description' => 'nullable|string|max:1000',
@@ -134,21 +99,13 @@ class ProjectTaskService
             'target_member_ids.*' => 'integer|exists:project_members,id',
         ]);
 
-        if ($validator->fails()) {
-            throw ValidationException::withMessages($validator->errors()->toArray());
-        }
-
-        $validated = $validator->validated();
-
         // オーナー権限チェック
         $this->validateOwnerAccess($customerId, $projectId);
 
         // プロジェクトタスクを取得
         $projectTask = $this->getProjectTask($projectId, $taskId);
 
-        $this->db->beginTransaction();
-
-        try {
+        return $this->executeInTransaction(function () use ($projectTask, $validated, $taskId) {
             // プロジェクトタスクを更新
             $projectTask->update([
                 'task_name' => $validated['accounting_name'],
@@ -163,17 +120,8 @@ class ProjectTaskService
                 $this->updateTargetMembers($taskId, $validated['target_member_ids']);
             }
 
-            $this->db->commit();
-
-            return [
-                'message' => '会計を更新しました',
-                'accounting' => $projectTask->fresh()
-            ];
-
-        } catch (\Exception $e) {
-            $this->db->rollBack();
-            throw $e;
-        }
+            return $this->successResponse('会計を更新しました', ['accounting' => $projectTask->fresh()]);
+        });
     }
 
     /**
@@ -188,57 +136,11 @@ class ProjectTaskService
         $projectTask = $this->getProjectTask($projectId, $taskId);
 
         // 論理削除
-        $projectTask->update(['del_flg' => true]);
+        $this->softDelete($projectTask);
 
-        return [
-            'message' => '会計を削除しました'
-        ];
+        return $this->successResponse('会計を削除しました');
     }
 
-    /**
-     * プロジェクトのアクセス権限をチェック
-     */
-    private function validateProjectAccess($customerId, int $projectId): void
-    {
-        $project = Project::where('project_id', $projectId)
-            ->where('del_flg', false)
-            ->first();
-        
-        if (!$project) {
-            throw new \Exception('プロジェクトが見つかりません');
-        }
-
-        // プロジェクトのオーナーまたはメンバーかチェック
-        $isOwner = $project->customer_id === $customerId;
-        $isMember = ProjectMember::where('project_id', $projectId)
-                                ->where('customer_id', $customerId)
-                                ->where('del_flg', false)
-                                ->exists();
-        
-        if (!$isOwner && !$isMember) {
-            throw new \Exception('アクセス権限がありません');
-        }
-    }
-
-    /**
-     * プロジェクトのオーナー権限をチェック
-     */
-    private function validateOwnerAccess($customerId, int $projectId): Project
-    {
-        $project = Project::where('project_id', $projectId)
-            ->where('del_flg', false)
-            ->first();
-        
-        if (!$project) {
-            throw new \Exception('プロジェクトが見つかりません');
-        }
-
-        if ($project->customer_id !== $customerId) {
-            throw new \Exception('アクセス権限がありません');
-        }
-
-        return $project;
-    }
 
     /**
      * プロジェクトタスクを取得
@@ -278,8 +180,7 @@ class ProjectTaskService
             ->first();
 
         // オーナーの名前を取得（オーナーが支払った場合の判定用）
-        $owner = $project->customer;
-        $ownerName = trim($owner->first_name . ' ' . $owner->last_name) ?: $owner->nick_name ?: 'オーナー';
+        $ownerName = $this->getOwnerName($project);
 
         if ($payerMember) {
             return [
@@ -291,7 +192,7 @@ class ProjectTaskService
             return [
                 'type' => 'owner',
                 'member_id' => null,
-                'customer_id' => $owner->customer_id
+                'customer_id' => $project->customer->customer_id
             ];
         } else {
             return [
@@ -359,9 +260,7 @@ class ProjectTaskService
             $member = $taskMember->projectMember;
             if (!$member) return null;
             
-            $memberName = $member->customer_id 
-                ? ($member->customer->nick_name ?: trim($member->customer->first_name . ' ' . $member->customer->last_name) ?: 'メンバー')
-                : $member->member_name;
+            $memberName = $this->getMemberName($member);
             
             return [
                 'id' => $member->id,

@@ -1,27 +1,27 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Auth;
 
 use App\Models\Customer;
+use App\Services\BaseService;
 use Illuminate\Contracts\Hashing\Hasher;
 use Illuminate\Contracts\Validation\Factory as ValidationFactory;
+use Illuminate\Database\ConnectionInterface;
 use Illuminate\Validation\ValidationException;
 use Psr\Log\LoggerInterface;
 
-class AuthService
+class AuthService extends BaseService
 {
     protected Hasher $hasher;
-    protected ValidationFactory $validationFactory;
-    protected LoggerInterface $logger;
 
     public function __construct(
         Hasher $hasher,
         ValidationFactory $validationFactory,
+        ConnectionInterface $db,
         LoggerInterface $logger
     ) {
+        parent::__construct($validationFactory, $db, $logger);
         $this->hasher = $hasher;
-        $this->validationFactory = $validationFactory;
-        $this->logger = $logger;
     }
 
     /**
@@ -29,38 +29,33 @@ class AuthService
      */
     public function guestLogin(array $data): array
     {
-        $this->logger->info('ゲストログイン開始', ['request_data' => $data]);
+        $this->logInfo('ゲストログイン開始', ['request_data' => $data]);
 
-        $validator = $this->validationFactory->make($data, [
+        $validated = $this->validateData($data, [
             'nick_name' => 'nullable|string|max:255',
         ]);
 
-        if ($validator->fails()) {
-            $this->logger->error('ゲストログインバリデーションエラー', ['errors' => $validator->errors()]);
-            throw ValidationException::withMessages($validator->errors()->toArray());
-        }
-
         // 自動的にユニークなニックネームを生成
-        $nickName = $data['nick_name'] ?? $this->generateGuestNickname();
+        $nickName = $validated['nick_name'] ?? $this->generateGuestNickname();
 
-        $this->logger->info('ゲストユーザー作成開始', ['nick_name' => $nickName]);
+        $this->logInfo('ゲストユーザー作成開始', ['nick_name' => $nickName]);
 
         $customer = Customer::create([
             'is_guest' => true,
             'nick_name' => $nickName,
         ]);
 
-        $this->logger->info('ゲストユーザー作成成功', ['customer_id' => $customer->customer_id]);
+        $this->logInfo('ゲストユーザー作成成功', ['customer_id' => $customer->customer_id]);
 
         $token = $customer->createToken('guest-token')->plainTextToken;
 
-        $this->logger->info('ゲストログイン成功', ['customer_id' => $customer->customer_id]);
+        $this->logInfo('ゲストログイン成功', ['customer_id' => $customer->customer_id]);
 
-        return [
+        return $this->successResponse('ゲストログインに成功しました', [
             'customer' => $customer,
             'token' => $token,
             'token_type' => 'Bearer'
-        ];
+        ]);
     }
 
     /**
@@ -68,7 +63,7 @@ class AuthService
      */
     public function register(array $data): array
     {
-        $validator = $this->validationFactory->make($data, [
+        $validated = $this->validateData($data, [
             'email' => 'required|email|unique:customers,email',
             'password' => 'required|string|min:8',
             'first_name' => 'nullable|string|max:255',
@@ -76,26 +71,22 @@ class AuthService
             'nick_name' => 'nullable|string|max:255',
         ]);
 
-        if ($validator->fails()) {
-            throw ValidationException::withMessages($validator->errors()->toArray());
-        }
-
         $customer = Customer::create([
             'is_guest' => false,
-            'email' => $data['email'],
-            'first_name' => $data['first_name'],
-            'last_name' => $data['last_name'],
-            'nick_name' => $data['nick_name'],
-            'password' => $this->hasher->make($data['password']),
+            'email' => $validated['email'],
+            'first_name' => $validated['first_name'],
+            'last_name' => $validated['last_name'],
+            'nick_name' => $validated['nick_name'],
+            'password' => $this->hasher->make($validated['password']),
         ]);
 
         $token = $customer->createToken('auth-token')->plainTextToken;
 
-        return [
+        return $this->successResponse('会員登録に成功しました', [
             'customer' => $customer,
             'token' => $token,
             'token_type' => 'Bearer'
-        ];
+        ]);
     }
 
     /**
@@ -108,7 +99,7 @@ class AuthService
             throw new \InvalidArgumentException('既に会員登録済みです');
         }
 
-        $validator = $this->validationFactory->make($data, [
+        $validated = $this->validateData($data, [
             'email' => 'required|email|unique:customers,email,' . $customer->customer_id . ',customer_id',
             'password' => 'required|string|min:8',
             'first_name' => 'nullable|string|max:255',
@@ -116,24 +107,20 @@ class AuthService
             'nick_name' => 'nullable|string|max:255',
         ]);
 
-        if ($validator->fails()) {
-            throw ValidationException::withMessages($validator->errors()->toArray());
-        }
-
         // 既存のゲストアカウントを更新
         $customer->update([
             'is_guest' => false,
-            'email' => $data['email'],
-            'first_name' => $data['first_name'],
-            'last_name' => $data['last_name'],
-            'nick_name' => $data['nick_name'],
-            'password' => $this->hasher->make($data['password']),
+            'email' => $validated['email'],
+            'first_name' => $validated['first_name'],
+            'last_name' => $validated['last_name'],
+            'nick_name' => $validated['nick_name'],
+            'password' => $this->hasher->make($validated['password']),
         ]);
 
-        return [
+        return $this->successResponse('会員登録に成功しました', [
             'customer' => $customer->fresh(),
             'token_type' => 'Bearer'
-        ];
+        ]);
     }
 
     /**
@@ -141,17 +128,13 @@ class AuthService
      */
     public function login(array $data): array
     {
-        $validator = $this->validationFactory->make($data, [
+        $validated = $this->validateData($data, [
             'email' => 'required|email',
             'password' => 'required|string',
         ]);
 
-        if ($validator->fails()) {
-            throw ValidationException::withMessages($validator->errors()->toArray());
-        }
-
-        $customer = Customer::where('email', $data['email'])->first();
-        if (!$customer || !$customer->password || !$this->hasher->check($data['password'], $customer->password)) {
+        $customer = Customer::where('email', $validated['email'])->first();
+        if (!$customer || !$customer->password || !$this->hasher->check($validated['password'], $customer->password)) {
             throw ValidationException::withMessages([
                 'email' => ['メールアドレスまたはパスワードが正しくありません。'],
             ]);
@@ -159,11 +142,11 @@ class AuthService
 
         $token = $customer->createToken('auth-token')->plainTextToken;
 
-        return [
+        return $this->successResponse('ログインに成功しました', [
             'customer' => $customer,
             'token' => $token,
             'token_type' => 'Bearer'
-        ];
+        ]);
     }
 
     /**
@@ -179,9 +162,9 @@ class AuthService
      */
     public function getUser(Customer $customer): array
     {
-        return [
+        return $this->successResponse('ユーザー情報を取得しました', [
             'customer' => $customer
-        ];
+        ]);
     }
 
     /**
@@ -189,7 +172,7 @@ class AuthService
      */
     public function updateProfile(Customer $customer, array $data): array
     {
-        $validator = $this->validationFactory->make($data, [
+        $validated = $this->validateData($data, [
             'first_name' => 'nullable|string|max:255',
             'last_name' => 'nullable|string|max:255',
             'nick_name' => 'nullable|string|max:255',
@@ -197,26 +180,10 @@ class AuthService
             'password' => 'nullable|string|min:8',
         ]);
 
-        if ($validator->fails()) {
-            throw ValidationException::withMessages($validator->errors()->toArray());
-        }
-
-        $updateData = [];
+        $updateData = $this->removeNullValues($validated);
         
-        if (isset($data['first_name']) && $data['first_name'] !== null) {
-            $updateData['first_name'] = $data['first_name'];
-        }
-        if (isset($data['last_name']) && $data['last_name'] !== null) {
-            $updateData['last_name'] = $data['last_name'];
-        }
-        if (isset($data['nick_name']) && $data['nick_name'] !== null) {
-            $updateData['nick_name'] = $data['nick_name'];
-        }
-        if (isset($data['email']) && $data['email'] !== null) {
-            $updateData['email'] = $data['email'];
-        }
-        if (isset($data['password']) && $data['password'] !== null) {
-            $updateData['password'] = $this->hasher->make($data['password']);
+        if (isset($updateData['password'])) {
+            $updateData['password'] = $this->hasher->make($updateData['password']);
         }
 
         if (empty($updateData)) {
@@ -225,9 +192,9 @@ class AuthService
 
         $customer->update($updateData);
 
-        return [
+        return $this->successResponse('プロフィールを更新しました', [
             'customer' => $customer->fresh()
-        ];
+        ]);
     }
 
     /**
