@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\Customer;
-use App\Models\OAuthAccount;
 
 class AuthSeeder extends Seeder
 {
@@ -42,19 +41,7 @@ class AuthSeeder extends Seeder
         ];
 
         foreach ($customers as $customerData) {
-            $customer = Customer::create($customerData);
-            
-            // 最初の2つの顧客にはOAuthアカウントを作成
-            if (!$customer->is_guest) {
-                OAuthAccount::create([
-                    'customer_id' => $customer->customer_id,
-                    'provider_name' => 'google',
-                    'provider_user_id' => 'google_' . $customer->customer_id,
-                    'access_token' => 'test_access_token_' . $customer->customer_id,
-                    'refresh_token' => 'test_refresh_token_' . $customer->customer_id,
-                    'token_expired_date' => now()->addDays(30),
-                ]);
-            }
+            Customer::create($customerData);
         }
     }
 }

@@ -31,13 +31,8 @@ class Customer extends Authenticatable
     protected $casts = [
         'is_guest' => 'boolean',
         'del_flg' => 'boolean',
-        'email_verified_at' => 'datetime',
     ];
 
-    public function oauthAccounts()
-    {
-        return $this->hasMany(OAuthAccount::class, 'customer_id');
-    }
 
     public function createdProjects()
     {

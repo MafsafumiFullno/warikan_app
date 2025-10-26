@@ -6,6 +6,7 @@ services:
     container_name: warikan_backend
     ports:
       - "8000:8000"
+      - "9003:9003" # Xdebug
     volumes:
       - ./backend:/var/www
     depends_on:
