@@ -42,6 +42,66 @@ docker-compose --version
 
 ---
 
+## ローカル環境でのセットアップ
+
+### Laravel セットアップ
+
+```bash
+# Composerのインストール
+# Windows: https://getcomposer.org/download/
+# Ubuntu: sudo apt install composer -y
+
+# Laravelプロジェクトの作成
+composer create-project laravel/laravel backend
+cd backend
+composer install
+php artisan key:generate
+php artisan install:api  # Laravel10以降はデフォルトで含まれていない
+cp .env.example .env
+```
+
+### Next.js セットアップ
+
+```bash
+# Node.jsのインストール
+# Ubuntu: curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+
+# Next.jsプロジェクトの作成
+npx create-next-app@latest frontend --typescript --tailwind --eslint
+cd frontend
+npm install
+```
+
+### データベース設定
+
+```bash
+# PostgreSQLのインストール（Ubuntu）
+sudo apt install postgresql postgresql-contrib -y
+
+# データベースの作成
+sudo -u postgres createdb warikan
+sudo -u postgres createuser --interactive
+
+# Laravelのマイグレーション実行
+cd backend
+php artisan migrate
+php artisan db:seed
+```
+
+### 開発サーバーの起動
+
+```bash
+# Laravel開発サーバー
+cd backend
+php artisan serve
+
+# Next.js開発サーバー（別ターミナル）
+cd frontend
+npm run dev
+```
+
+---
+
 ## Docker Compose設定の詳細
 
 ### docker-compose.yml の説明
@@ -65,9 +125,9 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_DB: warikan
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - pgdata:/var/lib/postgresql/data
 
@@ -84,38 +144,25 @@ volumes:
 
 ## Laravel環境設定の詳細
 
-### .envファイルの完全な設定例
+### .envファイルの設定例
 
 ```env
 APP_NAME=Laravel
 APP_ENV=local
 APP_KEY=base64:your-app-key-here
 APP_DEBUG=true
-APP_TIMEZONE=UTC
 APP_URL=http://localhost:8000
 
 DB_CONNECTION=pgsql
 DB_HOST=db
 DB_PORT=5432
-DB_DATABASE=warikan
-DB_USERNAME=user
-DB_PASSWORD=password
+DB_DATABASE=your_database_name
+DB_USERNAME=your_username
+DB_PASSWORD=your_password
 
 SESSION_DRIVER=database
-SESSION_LIFETIME=120
-SESSION_ENCRYPT=false
-
 CACHE_STORE=database
 QUEUE_CONNECTION=database
-
-MAIL_MAILER=log
-MAIL_HOST=127.0.0.1
-MAIL_PORT=2525
-MAIL_USERNAME=null
-MAIL_PASSWORD=null
-MAIL_ENCRYPTION=null
-MAIL_FROM_ADDRESS="hello@example.com"
-MAIL_FROM_NAME="${APP_NAME}"
 ```
 
 ---
@@ -139,7 +186,7 @@ docker compose up -d --build
 docker compose ps
 
 # データベースコンテナに接続
-docker compose exec db psql -U user -d warikan
+docker compose exec db psql -U your_username -d your_database
 ```
 
 #### 3. Laravelの設定が反映されない
@@ -175,7 +222,7 @@ docker compose logs -f db
 
 # コンテナ内でコマンド実行
 docker compose exec app php artisan tinker
-docker compose exec db psql -U user -d warikan
+docker compose exec db psql -U your_username -d your_database
 ```
 
 ### Laravel関連
