@@ -235,8 +235,8 @@ class AdvancedSplitService
                             // 最後のメンバーには残りを全て配分（端数処理）
                             $shareAmount = $remainingAmount;
                         } else {
-                            // 比重に基づいて配分
-                            $shareAmount = round($amount * $weight / $totalWeight, 2);
+                            // 比重に基づいて配分（整数に丸める）
+                            $shareAmount = (int)round($amount * $weight / $totalWeight);
                             $remainingAmount -= $shareAmount;
                         }
                         
@@ -279,9 +279,9 @@ class AdvancedSplitService
                 'member_name' => $member['member_name'],
                 'split_weight' => $member['split_weight'],
                 'is_owner' => $member['is_owner'],
-                'total_paid' => round($paidAmount, 2),
-                'share_amount' => round($shareAmount, 2),
-                'balance' => round($balance, 2),
+                'total_paid' => (int)round($paidAmount),
+                'share_amount' => (int)round($shareAmount),
+                'balance' => (int)round($balance),
             ];
         }
         
@@ -322,7 +322,7 @@ class AdvancedSplitService
                     'from_member_name' => $payer['member_name'],
                     'to_customer_id' => $receiver['customer_id'],
                     'to_member_name' => $receiver['member_name'],
-                    'amount' => round($amount, 2),
+                    'amount' => (int)round($amount),
                 ];
                 
                 // 残高を更新
