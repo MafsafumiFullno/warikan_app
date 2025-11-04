@@ -30,8 +30,8 @@ class AuthController extends Controller
             $result = $this->authService->guestLogin($request->all());
 
             return response()->json([
-                'message' => 'ゲストログイン成功',
-                ...$result
+                'customer' => $result['data']['customer'],
+                'token' => $result['data']['token']
             ], 200);
 
         } catch (ValidationException $e) {
@@ -62,8 +62,8 @@ class AuthController extends Controller
             $result = $this->authService->register($request->all());
 
             return response()->json([
-                'message' => '登録成功',
-                ...$result
+                'customer' => $result['data']['customer'],
+                'token' => $result['data']['token']
             ], 201);
         } catch (ValidationException $e) {
             return response()->json([
@@ -94,8 +94,7 @@ class AuthController extends Controller
             $result = $this->authService->upgradeToMember($customer, $request->all());
 
             return response()->json([
-                'message' => '会員登録完了',
-                ...$result
+                'customer' => $result['data']['customer']
             ], 200);
         } catch (\InvalidArgumentException $e) {
             return response()->json([
@@ -130,8 +129,8 @@ class AuthController extends Controller
             $result = $this->authService->login($request->all());
 
             return response()->json([
-                'message' => 'ログイン成功',
-                ...$result
+                'customer' => $result['data']['customer'],
+                'token' => $result['data']['token']
             ], 200);
         } catch (ValidationException $e) {
             return response()->json([
@@ -187,7 +186,9 @@ class AuthController extends Controller
             $customer = $request->user();
             $result = $this->authService->getUser($customer);
 
-            return response()->json($result, 200);
+            return response()->json([
+                'customer' => $result['data']['customer']
+            ], 200);
         } catch (\Exception $e) {
             $this->logger->error('ユーザー情報取得エラー', [
                 'error' => $e->getMessage(),
@@ -212,8 +213,7 @@ class AuthController extends Controller
             $result = $this->authService->updateProfile($customer, $request->all());
 
             return response()->json([
-                'message' => 'プロフィール更新成功',
-                ...$result
+                'customer' => $result['data']['customer']
             ], 200);
         } catch (\InvalidArgumentException $e) {
             return response()->json([
