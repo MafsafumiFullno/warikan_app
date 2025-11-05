@@ -33,15 +33,7 @@ class ProjectController extends Controller
 
             return response()->json($result);
         } catch (\Exception $e) {
-            $this->logger->error('プロジェクト一覧取得エラー: ' . $e->getMessage(), [
-                'customer_id' => $request->user()?->customer_id,
-                'request' => $request->all()
-            ]);
-            
-            return response()->json([
-                'message' => 'プロジェクト一覧の取得に失敗しました。',
-                'error' => config('app.debug') ? $e->getMessage() : 'サーバーエラーが発生しました'
-            ], 500);
+            return $this->handleException($e, $request, $this->logger, 'プロジェクト一覧取得');
         }
     }
 
@@ -55,23 +47,8 @@ class ProjectController extends Controller
             $result = $this->projectService->createProject($customer->customer_id, $request->all());
 
             return response()->json($result, 201);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'message' => 'バリデーションエラー',
-                'errors' => $e->errors()
-            ], 422);
         } catch (\Exception $e) {
-            $this->logger->error('プロジェクト作成エラー', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'request_data' => $request->all(),
-                'customer_id' => $request->user()?->customer_id
-            ]);
-
-            return response()->json([
-                'message' => 'プロジェクトの作成に失敗しました。',
-                'error' => config('app.debug') ? $e->getMessage() : 'サーバーエラーが発生しました'
-            ], 500);
+            return $this->handleException($e, $request, $this->logger, 'プロジェクト作成');
         }
     }
 
@@ -84,20 +61,9 @@ class ProjectController extends Controller
             $customer = $request->user();
             $result = $this->projectService->getProjectWithAccessCheck($customer->customer_id, $projectId);
 
-            return response()->json(['project' => $result['project']]);
+            return response()->json($result);
         } catch (\Exception $e) {
-            $this->logger->error('プロジェクト詳細取得エラー', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'project_id' => $projectId,
-                'customer_id' => $request->user()?->customer_id
-            ]);
-
-            return response()->json([
-                'message' => $e->getMessage(),
-                'error' => config('app.debug') ? $e->getMessage() : 'サーバーエラーが発生しました'
-            ], $e->getMessage() === 'プロジェクトが見つかりません。' ? 404 : 
-               ($e->getMessage() === 'アクセス権限がありません。' ? 403 : 500));
+            return $this->handleException($e, $request, $this->logger, 'プロジェクト詳細取得');
         }
     }
 
@@ -111,25 +77,8 @@ class ProjectController extends Controller
             $result = $this->projectService->updateProject($customer->customer_id, $projectId, $request->all());
 
             return response()->json($result);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'message' => 'バリデーションエラー',
-                'errors' => $e->errors()
-            ], 422);
         } catch (\Exception $e) {
-            $this->logger->error('プロジェクト更新エラー', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'project_id' => $projectId,
-                'customer_id' => $request->user()?->customer_id,
-                'request_data' => $request->all()
-            ]);
-
-            return response()->json([
-                'message' => $e->getMessage(),
-                'error' => config('app.debug') ? $e->getMessage() : 'サーバーエラーが発生しました'
-            ], $e->getMessage() === 'プロジェクトが見つかりません。' ? 404 : 
-               ($e->getMessage() === '無効な割り勘方法IDです。' ? 422 : 500));
+            return $this->handleException($e, $request, $this->logger, 'プロジェクト更新');
         }
     }
 
@@ -144,17 +93,7 @@ class ProjectController extends Controller
 
             return response()->json($result);
         } catch (\Exception $e) {
-            $this->logger->error('プロジェクト削除エラー', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'project_id' => $projectId,
-                'customer_id' => $request->user()?->customer_id
-            ]);
-
-            return response()->json([
-                'message' => $e->getMessage(),
-                'error' => config('app.debug') ? $e->getMessage() : 'サーバーエラーが発生しました'
-            ], $e->getMessage() === 'プロジェクトが見つかりません。' ? 404 : 500);
+            return $this->handleException($e, $request, $this->logger, 'プロジェクト削除');
         }
     }
 

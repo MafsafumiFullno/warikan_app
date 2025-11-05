@@ -16,7 +16,6 @@ class ProjectTask extends Model
         'project_task_code',
         'task_name',
         'task_member_name',
-        'customer_id',
         'member_id',
         'accounting_amount',
         'accounting_type',
@@ -41,14 +40,11 @@ class ProjectTask extends Model
         return $this->belongsTo(ProjectMember::class, 'member_id');
     }
 
-    public function customer()
-    {
-        return $this->belongsTo(Customer::class, 'customer_id');
-    }
 
     public function taskMembers()
     {
-        return $this->hasMany(ProjectTaskMember::class, 'task_id');
+        return $this->hasMany(ProjectTaskMember::class, 'task_id')
+            ->where('del_flg', false);
     }
 
     public function members()

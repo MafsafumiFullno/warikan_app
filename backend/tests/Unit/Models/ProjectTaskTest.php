@@ -5,7 +5,6 @@ namespace Tests\Unit\Models;
 use App\Models\ProjectTask;
 use App\Models\Project;
 use App\Models\ProjectMember;
-use App\Models\Customer;
 use App\Models\ProjectTaskMember;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -27,7 +26,6 @@ class ProjectTaskTest extends TestCase
             'project_task_code' => 'TASK-001',
             'task_name' => 'テストタスク',
             'task_member_name' => '田中太郎',
-            'customer_id' => 456,
             'member_id' => 789,
             'accounting_amount' => '1500.50',
             'accounting_type' => 'expense',
@@ -42,7 +40,6 @@ class ProjectTaskTest extends TestCase
         $this->assertSame('TASK-001', $model->project_task_code);
         $this->assertSame('テストタスク', $model->task_name);
         $this->assertSame('田中太郎', $model->task_member_name);
-        $this->assertSame(456, $model->customer_id);
         $this->assertSame(789, $model->member_id);
         $this->assertSame('1500.50', $model->accounting_amount);
         $this->assertSame('expense', $model->accounting_type);
@@ -144,22 +141,6 @@ class ProjectTaskTest extends TestCase
         $this->assertSame(ProjectMember::class, get_class($relation->getRelated()));
     }
 
-    public function test_customer_relation_is_belongs_to(): void
-    {
-        $model = new ProjectTask();
-        $relation = $model->customer();
-        $this->assertInstanceOf(BelongsTo::class, $relation);
-    }
-
-    public function test_customer_relation_keys_and_related_model(): void
-    {
-        $model = new ProjectTask();
-        $relation = $model->customer();
-
-        $this->assertSame('customer_id', $relation->getForeignKeyName());
-        $this->assertSame('customer_id', $relation->getOwnerKeyName());
-        $this->assertSame(Customer::class, get_class($relation->getRelated()));
-    }
 
     public function test_task_members_relation_is_has_many(): void
     {
@@ -233,7 +214,6 @@ class ProjectTaskTest extends TestCase
         $this->assertContains('project_task_code', $fillable);
         $this->assertContains('task_name', $fillable);
         $this->assertContains('task_member_name', $fillable);
-        $this->assertContains('customer_id', $fillable);
         $this->assertContains('member_id', $fillable);
         $this->assertContains('accounting_amount', $fillable);
         $this->assertContains('accounting_type', $fillable);
@@ -344,7 +324,6 @@ class ProjectTaskTest extends TestCase
         
         $this->assertInstanceOf(BelongsTo::class, $model->project());
         $this->assertInstanceOf(BelongsTo::class, $model->projectMember());
-        $this->assertInstanceOf(BelongsTo::class, $model->customer());
         $this->assertInstanceOf(HasMany::class, $model->taskMembers());
         $this->assertInstanceOf(BelongsToMany::class, $model->members());
     }
@@ -356,7 +335,6 @@ class ProjectTaskTest extends TestCase
             'project_task_code' => 'TASK-COMPLEX-001',
             'task_name' => '複雑なタスク',
             'task_member_name' => '佐藤次郎',
-            'customer_id' => 100,
             'member_id' => 200,
             'accounting_amount' => '25000.75',
             'accounting_type' => 'expense',
@@ -370,7 +348,6 @@ class ProjectTaskTest extends TestCase
         $this->assertSame('TASK-COMPLEX-001', $model->project_task_code);
         $this->assertSame('複雑なタスク', $model->task_name);
         $this->assertSame('佐藤次郎', $model->task_member_name);
-        $this->assertSame(100, $model->customer_id);
         $this->assertSame(200, $model->member_id);
         $this->assertSame('25000.75', $model->accounting_amount);
         $this->assertSame('expense', $model->accounting_type);

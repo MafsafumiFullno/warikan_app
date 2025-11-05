@@ -51,11 +51,10 @@ class AuthService extends BaseService
 
         $this->logInfo('ゲストログイン成功', ['customer_id' => $customer->customer_id]);
 
-        return $this->successResponse('ゲストログインに成功しました', [
+        return [
             'customer' => $customer,
             'token' => $token,
-            'token_type' => 'Bearer'
-        ]);
+        ];
     }
 
     /**
@@ -82,11 +81,10 @@ class AuthService extends BaseService
 
         $token = $customer->createToken('auth-token')->plainTextToken;
 
-        return $this->successResponse('会員登録に成功しました', [
+        return [
             'customer' => $customer,
             'token' => $token,
-            'token_type' => 'Bearer'
-        ]);
+        ];
     }
 
     /**
@@ -117,10 +115,9 @@ class AuthService extends BaseService
             'password' => $this->hasher->make($validated['password']),
         ]);
 
-        return $this->successResponse('会員登録に成功しました', [
+        return [
             'customer' => $customer->fresh(),
-            'token_type' => 'Bearer'
-        ]);
+        ];
     }
 
     /**
@@ -142,11 +139,10 @@ class AuthService extends BaseService
 
         $token = $customer->createToken('auth-token')->plainTextToken;
 
-        return $this->successResponse('ログインに成功しました', [
+        return [
             'customer' => $customer,
             'token' => $token,
-            'token_type' => 'Bearer'
-        ]);
+        ];
     }
 
     /**
@@ -162,9 +158,9 @@ class AuthService extends BaseService
      */
     public function getUser(Customer $customer): array
     {
-        return $this->successResponse('ユーザー情報を取得しました', [
+        return [
             'customer' => $customer
-        ]);
+        ];
     }
 
     /**
@@ -192,9 +188,9 @@ class AuthService extends BaseService
 
         $customer->update($updateData);
 
-        return $this->successResponse('プロフィールを更新しました', [
+        return [
             'customer' => $customer->fresh()
-        ]);
+        ];
     }
 
     /**

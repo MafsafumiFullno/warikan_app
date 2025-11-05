@@ -21,6 +21,28 @@ class AuthController extends Controller
         $this->authService = $authService;
         $this->logger = $logger;
     }
+
+    /**
+     * 認証レスポンス（customer + token）を返す
+     */
+    private function authResponse(array $data, int $statusCode = 200): JsonResponse
+    {
+        return response()->json([
+            'customer' => $data['customer'],
+            'token' => $data['token']
+        ], $statusCode);
+    }
+
+    /**
+     * 顧客レスポンス（customerのみ）を返す
+     */
+    private function customerResponse(array $data, int $statusCode = 200): JsonResponse
+    {
+        return response()->json([
+            'customer' => $data['customer']
+        ], $statusCode);
+    }
+
     /**
      * ゲストユーザーとしてログイン
      */
@@ -28,11 +50,7 @@ class AuthController extends Controller
     {
         try {
             $result = $this->authService->guestLogin($request->all());
-
-            return response()->json([
-                'customer' => $result['data']['customer'],
-                'token' => $result['data']['token']
-            ], 200);
+            return $this->authResponse($result);
 
         } catch (ValidationException $e) {
             return response()->json([
@@ -60,11 +78,7 @@ class AuthController extends Controller
     {
         try {
             $result = $this->authService->register($request->all());
-
-            return response()->json([
-                'customer' => $result['data']['customer'],
-                'token' => $result['data']['token']
-            ], 201);
+            return $this->authResponse($result, 201);
         } catch (ValidationException $e) {
             return response()->json([
                 'message' => 'バリデーションエラー',
@@ -92,10 +106,7 @@ class AuthController extends Controller
         try {
             $customer = $request->user();
             $result = $this->authService->upgradeToMember($customer, $request->all());
-
-            return response()->json([
-                'customer' => $result['data']['customer']
-            ], 200);
+            return $this->customerResponse($result);
         } catch (\InvalidArgumentException $e) {
             return response()->json([
                 'message' => $e->getMessage()
@@ -127,11 +138,7 @@ class AuthController extends Controller
     {
         try {
             $result = $this->authService->login($request->all());
-
-            return response()->json([
-                'customer' => $result['data']['customer'],
-                'token' => $result['data']['token']
-            ], 200);
+            return $this->authResponse($result);
         } catch (ValidationException $e) {
             return response()->json([
                 'message' => 'バリデーションエラー',
@@ -185,10 +192,7 @@ class AuthController extends Controller
         try {
             $customer = $request->user();
             $result = $this->authService->getUser($customer);
-
-            return response()->json([
-                'customer' => $result['data']['customer']
-            ], 200);
+            return $this->customerResponse($result);
         } catch (\Exception $e) {
             $this->logger->error('ユーザー情報取得エラー', [
                 'error' => $e->getMessage(),
@@ -211,10 +215,7 @@ class AuthController extends Controller
         try {
             $customer = $request->user();
             $result = $this->authService->updateProfile($customer, $request->all());
-
-            return response()->json([
-                'customer' => $result['data']['customer']
-            ], 200);
+            return $this->customerResponse($result);
         } catch (\InvalidArgumentException $e) {
             return response()->json([
                 'message' => $e->getMessage()

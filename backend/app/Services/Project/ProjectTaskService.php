@@ -21,14 +21,16 @@ class ProjectTaskService extends BaseService
 
         $projectTasks = ProjectTask::where('project_id', $projectId)
             ->where('del_flg', false)
-            ->with(['taskMembers.projectMember.customer'])
+            ->with(['taskMembers' => function ($query) {
+                $query->where('del_flg', false);
+            }, 'taskMembers.projectMember.customer'])
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($task) {
                 return $this->formatTaskData($task);
             });
 
-        return $this->successResponse('会計一覧を取得しました', ['accountings' => $projectTasks]);
+        return ['accountings' => $projectTasks];
     }
 
     /**
@@ -79,7 +81,7 @@ class ProjectTaskService extends BaseService
                 'task_id' => $projectTask->task_id
             ]);
 
-            return $this->successResponse('会計を追加しました', ['accounting' => $projectTask]);
+            return ['accounting' => $this->formatTaskData($projectTask->fresh())];
         });
     }
 
@@ -112,7 +114,7 @@ class ProjectTaskService extends BaseService
                 'task_member_name' => $validated['member_name'],
                 'accounting_amount' => $validated['amount'],
                 'accounting_type' => $validated['accounting_type'] ?? 'expense',
-                'breakdown' => $validated['description'],
+                'breakdown' => $validated['description'] ?? null,
             ]);
 
             // 対象メンバーを更新
@@ -120,7 +122,7 @@ class ProjectTaskService extends BaseService
                 $this->updateTargetMembers($taskId, $validated['target_member_ids']);
             }
 
-            return $this->successResponse('会計を更新しました', ['accounting' => $projectTask->fresh()]);
+            return ['accounting' => $this->formatTaskData($projectTask->fresh())];
         });
     }
 
@@ -138,7 +140,7 @@ class ProjectTaskService extends BaseService
         // 論理削除
         $this->softDelete($projectTask);
 
-        return $this->successResponse('会計を削除しました');
+        return ['message' => '会計を削除しました'];
     }
 
 
@@ -215,11 +217,10 @@ class ProjectTaskService extends BaseService
             'task_member_name' => $validated['member_name'],
             'accounting_amount' => $validated['amount'],
             'accounting_type' => $validated['accounting_type'] ?? 'expense',
-            'breakdown' => $validated['description'],
+            'breakdown' => $validated['description'] ?? null,
             'memo' => null,
             'del_flg' => false,
             'member_id' => $payerInfo['member_id'],
-            'customer_id' => $payerInfo['customer_id'],
         ];
     }
 
@@ -229,11 +230,22 @@ class ProjectTaskService extends BaseService
     private function addTargetMembers(int $taskId, array $targetMemberIds): void
     {
         foreach ($targetMemberIds as $memberId) {
-            ProjectTaskMember::create([
-                'member_id' => $memberId,
-                'task_id' => $taskId,
-                'del_flg' => false,
-            ]);
+            // 既存のレコード（論理削除済みも含む）を確認
+            $existing = ProjectTaskMember::where('task_id', $taskId)
+                ->where('member_id', $memberId)
+                ->first();
+
+            if ($existing) {
+                // 既存のレコードがある場合は復活
+                $existing->update(['del_flg' => false]);
+            } else {
+                // 存在しない場合は新規作成
+                ProjectTaskMember::create([
+                    'member_id' => $memberId,
+                    'task_id' => $taskId,
+                    'del_flg' => false,
+                ]);
+            }
         }
     }
 
@@ -242,12 +254,113 @@ class ProjectTaskService extends BaseService
      */
     private function updateTargetMembers(int $taskId, array $targetMemberIds): void
     {
-        // 既存の対象メンバーを論理削除
-        ProjectTaskMember::where('task_id', $taskId)
-            ->update(['del_flg' => true]);
+        // 新しいメンバーIDの配列を数値型に統一（比較のため）
+        $targetMemberIds = array_map('intval', $targetMemberIds);
+        $targetMemberIds = array_unique($targetMemberIds); // 重複を除去
 
-        // 新しい対象メンバーを追加
-        $this->addTargetMembers($taskId, $targetMemberIds);
+        // 同じmember_idで複数のアクティブなレコードがある場合、最新の1つだけを残して他を論理削除
+        $activeRecords = ProjectTaskMember::where('task_id', $taskId)
+            ->where('del_flg', false)
+            ->orderBy('id', 'desc')
+            ->get()
+            ->groupBy('member_id');
+
+        foreach ($activeRecords as $memberId => $records) {
+            if ($records->count() > 1) {
+                // 最新の1つ以外を論理削除
+                $recordsToDelete = $records->skip(1)->pluck('id');
+                ProjectTaskMember::whereIn('id', $recordsToDelete)->update(['del_flg' => true]);
+            }
+        }
+
+        // 既存の全レコード（論理削除済みも含む）を一括取得
+        // 同じmember_idで複数のレコードがある場合、最新のもの（IDが大きい）を優先
+        $existingRecords = ProjectTaskMember::where('task_id', $taskId)
+            ->orderBy('id', 'desc')
+            ->get()
+            ->unique('member_id')
+            ->keyBy('member_id');
+
+        // 既存のアクティブなメンバーIDを取得
+        $existingActiveMemberIds = $existingRecords
+            ->where('del_flg', false)
+            ->keys()
+            ->map(fn($id) => (int)$id)
+            ->toArray();
+
+        // 削除が必要なメンバー（既存にあって新しいリストにない）
+        $toDelete = array_diff($existingActiveMemberIds, $targetMemberIds);
+        if (!empty($toDelete)) {
+            // 同じmember_idで複数のレコードがある可能性があるため、全て論理削除
+            ProjectTaskMember::where('task_id', $taskId)
+                ->whereIn('member_id', $toDelete)
+                ->where('del_flg', false)
+                ->update(['del_flg' => true]);
+        }
+
+        // 追加が必要なメンバー（新しいリストにあって既存にない、または論理削除済み）
+        $toAdd = array_diff($targetMemberIds, $existingActiveMemberIds);
+        if (!empty($toAdd)) {
+            // 論理削除済みのレコードを取得（復活用）
+            $toRestore = [];
+            $toCreate = [];
+
+            foreach ($toAdd as $memberId) {
+                $existingRecord = $existingRecords->get($memberId);
+                if ($existingRecord) {
+                    if ($existingRecord->del_flg) {
+                        // 論理削除済みのレコードがある場合は復活対象に追加
+                        // unique()で最新の1つだけが取得されているので、その1つだけを復活
+                        $toRestore[] = $memberId;
+                    }
+                    // 既にアクティブなレコードがある場合は何もしない（重複チェック）
+                } else {
+                    // 存在しない場合は新規作成対象に追加
+                    $toCreate[] = $memberId;
+                }
+            }
+
+            // 論理削除済みレコードを復活
+            // 同じmember_idで複数のレコードがある場合、最新の1つだけを復活
+            if (!empty($toRestore)) {
+                foreach ($toRestore as $memberId) {
+                    // 最新の1つだけを取得して復活
+                    $recordToRestore = ProjectTaskMember::where('task_id', $taskId)
+                        ->where('member_id', $memberId)
+                        ->where('del_flg', true)
+                        ->orderBy('id', 'desc')
+                        ->first();
+                    
+                    if ($recordToRestore) {
+                        // 最新の1つだけを復活
+                        $recordToRestore->update(['del_flg' => false]);
+                        // 同じmember_idの他の論理削除済みレコードは削除したまま（または物理削除）
+                    }
+                }
+            }
+
+            // 新規レコードを一括作成
+            // 作成前に既存レコード（論理削除済みも含む）を再確認して重複を避ける
+            if (!empty($toCreate)) {
+                // 既に存在するmember_idを除外（論理削除済みも含む）
+                $existingAllMemberIds = $existingRecords->keys()->map(fn($id) => (int)$id)->toArray();
+                $toCreate = array_diff($toCreate, $existingAllMemberIds);
+
+                if (!empty($toCreate)) {
+                    $insertData = array_map(function ($memberId) use ($taskId) {
+                        return [
+                            'member_id' => $memberId,
+                            'task_id' => $taskId,
+                            'del_flg' => false,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ];
+                    }, $toCreate);
+
+                    ProjectTaskMember::insert($insertData);
+                }
+            }
+        }
     }
 
     /**
@@ -271,6 +384,11 @@ class ProjectTaskService extends BaseService
         $taskArray = $task->toArray();
         $taskArray['target_members'] = array_column($targetMembers, 'name');
         $taskArray['target_member_ids'] = array_column($targetMembers, 'id');
+        
+        // 金額を整数として返す（小数点を除去）
+        if (isset($taskArray['accounting_amount'])) {
+            $taskArray['accounting_amount'] = (int) round((float) $taskArray['accounting_amount']);
+        }
         
         return $taskArray;
     }

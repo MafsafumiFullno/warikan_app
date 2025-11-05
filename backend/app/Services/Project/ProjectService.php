@@ -93,7 +93,7 @@ class ProjectService extends BaseService
 
         $this->logInfo('プロジェクト作成完了', ['project_id' => $project->project_id]);
 
-        return $this->successResponse('プロジェクトを作成しました', ['project' => $project]);
+        return ['project' => $project];
     }
 
     /**
@@ -109,11 +109,11 @@ class ProjectService extends BaseService
                                 ->where('del_flg', false)
                                 ->exists();
 
-        return $this->successResponse('プロジェクトを取得しました', [
+        return [
             'project' => $project,
             'isOwner' => $isOwner,
             'isMember' => $isMember
-        ]);
+        ];
     }
 
     /**
@@ -148,7 +148,7 @@ class ProjectService extends BaseService
         $project->fill($validated);
         $project->save();
 
-        return $this->successResponse('プロジェクトを更新しました', ['project' => $project]);
+        return ['project' => $project];
     }
 
     /**
@@ -167,7 +167,7 @@ class ProjectService extends BaseService
 
         $this->softDelete($project);
 
-        return $this->successResponse('プロジェクトを削除しました');
+        return ['message' => 'プロジェクトを削除しました'];
     }
 
     /**

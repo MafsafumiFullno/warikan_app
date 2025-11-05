@@ -29,7 +29,7 @@ class ProjectMemberService extends BaseService
                                   return $this->formatMemberData($member, $projectId);
                               });
 
-        return $this->successResponse('メンバー一覧を取得しました', ['members' => $members]);
+        return ['members' => $members];
     }
 
     /**
@@ -70,9 +70,7 @@ class ProjectMemberService extends BaseService
                 'member_id' => $member->id
             ]);
 
-            return $this->successResponse('メンバーが正常に追加されました', [
-                'member' => $this->formatMemberData($member, $projectId)
-            ]);
+            return ['member' => $this->formatMemberData($member, $projectId)];
         });
     }
 
@@ -93,9 +91,7 @@ class ProjectMemberService extends BaseService
         $projectMember = $this->getProjectMemberById($projectId, $memberId);
         $projectMember->update(['memo' => $validated['memo'] ?? null]);
 
-        return $this->successResponse('メモが正常に更新されました', [
-            'memo' => $projectMember->memo
-        ]);
+        return ['memo' => $projectMember->memo];
     }
 
     /**
@@ -115,9 +111,7 @@ class ProjectMemberService extends BaseService
         $projectMember = $this->getProjectMemberByProjectMemberIdLocal($projectId, $memberId);
         $projectMember->update(['split_weight' => $validated['split_weight']]);
 
-        return $this->successResponse('割り勘比重が正常に更新されました', [
-            'split_weight' => $projectMember->split_weight
-        ]);
+        return ['split_weight' => $projectMember->split_weight];
     }
 
     /**
@@ -132,7 +126,7 @@ class ProjectMemberService extends BaseService
         $projectMember = $this->getProjectMemberByProjectMemberIdLocal($projectId, $memberId);
         $this->softDelete($projectMember);
 
-        return $this->successResponse('メンバーが正常に削除されました');
+        return ['message' => 'メンバーが正常に削除されました'];
     }
 
 
