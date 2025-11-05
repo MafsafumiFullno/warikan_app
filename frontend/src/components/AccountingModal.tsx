@@ -57,9 +57,17 @@ export default function AccountingModal({ isOpen, onClose, projectId, members, o
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    
+    // 金額フィールドの場合は小数点を除去（整数のみ許可）
+    let processedValue = value;
+    if (name === 'amount') {
+      // 小数点とマイナス符号を除去
+      processedValue = value.replace(/[^\d]/g, '');
+    }
+    
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: processedValue
     }));
     
     // バリデーションエラーをクリア
@@ -68,6 +76,13 @@ export default function AccountingModal({ isOpen, onClose, projectId, members, o
         ...prev,
         [name]: ''
       }));
+    }
+  };
+
+  const handleAmountKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // 小数点、マイナス、プラス、E（指数表記）などのキー入力をブロック
+    if (e.key === '.' || e.key === '-' || e.key === '+' || e.key === 'e' || e.key === 'E') {
+      e.preventDefault();
     }
   };
 
@@ -97,8 +112,13 @@ export default function AccountingModal({ isOpen, onClose, projectId, members, o
 
     if (!formData.amount.trim()) {
       errors.amount = '金額は必須です';
-    } else if (isNaN(Number(formData.amount)) || Number(formData.amount) <= 0) {
-      errors.amount = '有効な金額を入力してください';
+    } else {
+      const amount = Number(formData.amount);
+      if (isNaN(amount) || amount <= 0) {
+        errors.amount = '有効な金額を入力してください';
+      } else if (!Number.isInteger(amount)) {
+        errors.amount = '金額は整数で入力してください';
+      }
     }
 
     if (!formData.member_name.trim()) {
@@ -126,7 +146,7 @@ export default function AccountingModal({ isOpen, onClose, projectId, members, o
     try {
       const requestData = {
         accounting_name: formData.accounting_name.trim(),
-        amount: Number(formData.amount),
+        amount: parseInt(formData.amount, 10),
         description: formData.description.trim() || undefined,
         accounting_type: formData.accounting_type,
         member_name: formData.member_name.trim(),
@@ -286,12 +306,15 @@ export default function AccountingModal({ isOpen, onClose, projectId, members, o
                   name="amount"
                   value={formData.amount}
                   onChange={handleInputChange}
+                  onKeyDown={handleAmountKeyDown}
                   className={`w-full pl-8 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                     validationErrors.amount ? 'border-red-500' : 'border-gray-300'
                   }`}
                   placeholder="0"
                   min="1"
                   step="1"
+                  pattern="[0-9]*"
+                  inputMode="numeric"
                   required
                 />
               </div>

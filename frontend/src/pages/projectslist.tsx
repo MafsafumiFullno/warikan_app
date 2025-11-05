@@ -5,7 +5,7 @@ import ProjectsListComponent from '@/components/ProjectsListComponent';
 export default function ProjectsList() {
   return (
     <AuthGuard>
-      <Layout title="プロジェクト一覧" showProjectsButton={true}>
+      <Layout title="プロジェクト一覧">
         <ProjectsListComponent />
       </Layout>
     </AuthGuard>
