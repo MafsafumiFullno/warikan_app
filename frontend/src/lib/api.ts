@@ -42,15 +42,22 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   if (!res.ok) {
     let detail: any = undefined;
     try {
-      detail = await res.json();
-    } catch {}
+      const text = await res.text();
+      if (text) {
+        detail = JSON.parse(text);
+      }
+    } catch (e) {
+      // JSONパースに失敗した場合は、テキストをそのまま使用
+      detail = { message: `API Error: ${res.status} ${res.statusText}` };
+    }
     console.error('API Error:', {
       status: res.status,
       statusText: res.statusText,
       url: `${API_BASE_URL}${path}`,
       detail
     });
-    throw new Error(detail?.message || `API Error: ${res.status}`);
+    const errorMessage = detail?.message || detail?.error || `API Error: ${res.status} ${res.statusText}`;
+    throw new Error(errorMessage);
   }
 
   // 204 No Content の場合

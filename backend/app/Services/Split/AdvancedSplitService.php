@@ -118,21 +118,42 @@ class AdvancedSplitService
      */
     private function getTasksWithTargetMembers(int $projectId): array
     {
+        $project = Project::find($projectId);
+        $ownerCustomerId = $project ? $project->customer_id : null;
+        
         return ProjectTask::where('project_id', $projectId)
             ->where('del_flg', false)
-            ->with(['projectMember.customer', 'taskMembers.projectMember.customer'])
+            ->with(['projectMember.customer', 'taskMembers.projectMember.customer', 'project'])
             ->get()
-            ->map(function ($task) {
+            ->map(function ($task) use ($ownerCustomerId) {
                 // 支払人の情報を取得（member_idベース）
                 $payerMemberId = $task->member_id;
                 $payerCustomerId = null;
                 $payerMemberName = null;
                 
                 if ($task->projectMember) {
+                    // プロジェクトメンバーが支払った場合
+                    $payerMemberId = $task->projectMember->id;
                     $payerCustomerId = $task->projectMember->customer_id;
                     $payerMemberName = $task->projectMember->customer_id 
                         ? ($task->projectMember->customer->nick_name ?: trim($task->projectMember->customer->first_name . ' ' . $task->projectMember->customer->last_name) ?: 'メンバー')
                         : $task->projectMember->member_name;
+                } elseif ($payerMemberId === null) {
+                    // member_idがnullの場合（オーナーやゲストが支払った場合）
+                    // task_member_nameから判定
+                    $ownerName = $task->project ? $this->getOwnerName($task->project) : null;
+                    
+                    if ($task->task_member_name === $ownerName) {
+                        // オーナーが支払った場合、仮想member_id(-1)を使用
+                        $payerMemberId = -1;
+                        $payerCustomerId = $ownerCustomerId;
+                        $payerMemberName = $task->task_member_name;
+                    } else {
+                        // ゲストが支払った場合
+                        $payerMemberId = null;
+                        $payerCustomerId = null;
+                        $payerMemberName = $task->task_member_name;
+                    }
                 }
                 
                 return [
@@ -162,6 +183,21 @@ class AdvancedSplitService
                 ];
             })
             ->toArray();
+    }
+    
+    /**
+     * オーナー名を取得
+     */
+    private function getOwnerName(Project $project): string
+    {
+        $owner = $project->customer;
+        if (!$owner) {
+            return '';
+        }
+        
+        return $owner->nick_name 
+            ?: trim($owner->first_name . ' ' . $owner->last_name) 
+            ?: 'オーナー';
     }
 
     /**
