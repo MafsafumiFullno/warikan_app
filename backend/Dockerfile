@@ -6,8 +6,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     vim \
     libpq-dev \
+    libsqlite3-dev \
     $PHPIZE_DEPS \
-    && docker-php-ext-install pdo pdo_pgsql \
+    && docker-php-ext-install pdo pdo_pgsql pdo_sqlite \
     && pecl install xdebug \
     && docker-php-ext-enable xdebug \
     && rm -rf /var/lib/apt/lists/*
