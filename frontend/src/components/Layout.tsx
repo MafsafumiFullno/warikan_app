@@ -7,6 +7,7 @@ import ProjectsListComponent from './ProjectsListComponent';
 interface LayoutProps {
   children: React.ReactNode;
   title?: string;
+  showProjectsButton?: boolean;
 }
 
 export default function Layout({ children, title = 'プロジェクト一覧' }: LayoutProps) {
