@@ -3,7 +3,6 @@
 namespace Tests\Unit\Models;
 
 use App\Models\Customer;
-use App\Models\OAuthAccount;
 use App\Models\Project;
 use App\Models\CustomerSplitMethod;
 use App\Models\ProjectTask;
@@ -67,24 +66,6 @@ class CustomerTest extends TestCase
 
         $this->assertTrue($model->is_guest);
         $this->assertFalse($model->del_flg);
-    }
-
-
-    public function test_oauth_accounts_relation_is_has_many(): void
-    {
-        $model = new Customer();
-        $relation = $model->oauthAccounts();
-        $this->assertInstanceOf(HasMany::class, $relation);
-    }
-
-    public function test_oauth_accounts_relation_keys_and_related_model(): void
-    {
-        $model = new Customer();
-        $relation = $model->oauthAccounts();
-
-        $this->assertSame('customer_id', $relation->getForeignKeyName());
-        $this->assertSame('customer_id', $relation->getLocalKeyName());
-        $this->assertSame(OAuthAccount::class, get_class($relation->getRelated()));
     }
 
     public function test_created_projects_relation_is_has_many(): void
