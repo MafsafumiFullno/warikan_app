@@ -44,10 +44,36 @@ class TestProjectService extends TestCase
      */
     protected function createProject(int $customerId, array $attributes = []): Project
     {
-        return Project::create(array_merge([
+        $project = Project::create(array_merge([
             'customer_id' => $customerId,
             'project_name' => 'テストプロジェクト',
             'project_status' => 'active',
+            'del_flg' => false,
+        ], $attributes));
+
+        // created_at/updated_at をテストで指定したい場合のみ、タイムスタンプ自動更新を無効化して反映
+        if (array_key_exists('created_at', $attributes) || array_key_exists('updated_at', $attributes)) {
+            $project->timestamps = false;
+            $project->forceFill([
+                'created_at' => $attributes['created_at'] ?? $project->created_at,
+                'updated_at' => $attributes['updated_at'] ?? $project->updated_at,
+            ])->save();
+            $project->timestamps = true;
+        }
+        return $project;
+    }
+
+    /**
+     * テスト用の共通ProjectMemberデータを作成する
+     */
+    protected function createProjectMember(int $projectId, array $attributes = []): ProjectMember
+    {
+        return ProjectMember::create(array_merge([
+            'project_id' => $projectId,
+            'project_member_id' => 1,
+            'customer_id' => $attributes['customer_id'] ?? null,
+            'role_id' => $this->ownerRole->role_id,
+            'split_weight' => 1.00,
             'del_flg' => false,
         ], $attributes));
     }
@@ -587,6 +613,9 @@ class TestProjectService extends TestCase
     {
         $customer = $this->createCustomer();
         $project = $this->createProject($customer->customer_id);
+        $this->createProjectMember($project->project_id, [
+            'customer_id' => $customer->customer_id,
+        ]);
 
         $result = $this->projectService->getProjectWithAccessCheck($customer->customer_id, $project->project_id);
 
