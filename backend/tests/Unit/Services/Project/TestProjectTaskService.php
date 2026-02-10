@@ -74,7 +74,7 @@ class TestProjectTaskService extends TestCase
      */
     protected function createProjectTask(int $projectId, array $attributes = []): ProjectTask
     {
-        return ProjectTask::create(array_merge([
+        $task = ProjectTask::create(array_merge([
             'project_id' => $projectId,
             'project_task_code' => 1,
             'task_name' => 'テスト会計',
@@ -83,6 +83,18 @@ class TestProjectTaskService extends TestCase
             'accounting_type' => 'expense',
             'del_flg' => false,
         ], $attributes));
+
+        // created_at/updated_at をテストで指定したい場合のみ、タイムスタンプ自動更新を無効化して反映
+        if (array_key_exists('created_at', $attributes) || array_key_exists('updated_at', $attributes)) {
+            $task->timestamps = false;
+            $task->forceFill([
+                'created_at' => $attributes['created_at'] ?? $task->created_at,
+                'updated_at' => $attributes['updated_at'] ?? $task->updated_at,
+            ])->save();
+            $task->timestamps = true;
+        }
+
+        return $task;
     }
 
     // ===== プロジェクトの会計一覧を取得テスト =====
