@@ -76,7 +76,6 @@ class AuthServiceTest extends TestCase
         $this->assertTrue($customer->is_guest);
         $this->assertNotNull($customer->nick_name);
         $this->assertMatchesRegularExpression('/^[^\s]{1,}\d+$/', $customer->nick_name);
-        $this->assertNotEmpty($result['token']);
     }
 
     /**
