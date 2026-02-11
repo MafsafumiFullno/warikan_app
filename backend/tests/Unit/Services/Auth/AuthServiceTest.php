@@ -8,7 +8,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
-class TestAuthService extends TestCase
+class AuthServiceTest extends TestCase
 {
     use RefreshDatabase;
 
