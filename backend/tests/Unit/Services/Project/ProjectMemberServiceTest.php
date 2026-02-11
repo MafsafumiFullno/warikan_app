@@ -10,7 +10,7 @@ use App\Models\ProjectRole;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-class TestProjectMemberService extends TestCase
+class ProjectMemberServiceTest extends TestCase
 {
     use RefreshDatabase;
 

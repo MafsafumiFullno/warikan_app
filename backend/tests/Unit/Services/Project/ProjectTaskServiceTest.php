@@ -13,7 +13,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
-class TestProjectTaskService extends TestCase
+class ProjectTaskServiceTest extends TestCase
 {
     use RefreshDatabase;
 
