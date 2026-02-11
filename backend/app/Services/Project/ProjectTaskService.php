@@ -385,9 +385,9 @@ class ProjectTaskService extends BaseService
         $taskArray['target_members'] = array_column($targetMembers, 'name');
         $taskArray['target_member_ids'] = array_column($targetMembers, 'id');
         
-        // 金額を整数として返す（小数点を除去）
+        // 金額を整数として返す（小数点を切り捨て）
         if (isset($taskArray['accounting_amount'])) {
-            $taskArray['accounting_amount'] = (int) round((float) $taskArray['accounting_amount']);
+            $taskArray['accounting_amount'] = (int) $taskArray['accounting_amount'];
         }
         
         return $taskArray;
