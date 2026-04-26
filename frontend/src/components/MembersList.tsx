@@ -74,7 +74,7 @@ export default function MembersList({
         method: 'DELETE',
       });
       
-      setMembers(prev => prev.filter(member => member.id !== memberId));
+      setMembers(prev => prev.filter(member => member.project_member_id !== memberId));
       onMemberRemoved?.(memberId);
       
     } catch (err: any) {
@@ -96,7 +96,7 @@ export default function MembersList({
       });
       
       setMembers(prev => prev.map(member => 
-        member.id === memberId 
+        member.project_member_id === memberId 
           ? { ...member, split_weight: newWeight }
           : member
       ));
@@ -133,7 +133,7 @@ export default function MembersList({
       });
       
       setMembers(prev => prev.map(member => 
-        member.id === memberId 
+        member.project_member_id === memberId 
           ? { ...member, memo: newMemo }
           : member
       ));
@@ -266,7 +266,7 @@ export default function MembersList({
                             step="0.01"
                           />
                           <button
-                            onClick={() => handleWeightUpdate(member.id, parseFloat(weightValue))}
+                            onClick={() => handleWeightUpdate(member.project_member_id, parseFloat(weightValue))}
                             className="text-xs bg-blue-600 text-white px-2 py-0.5 rounded hover:bg-blue-700"
                           >
                             保存
@@ -307,7 +307,7 @@ export default function MembersList({
                   )}
                   {isOwner && (
                     <div className="mt-2">
-                      {editingMemo === member.id ? (
+                      {editingMemo === member.project_member_id ? (
                         <div className="space-y-2">
                           <textarea
                             value={memoValue}
@@ -319,7 +319,7 @@ export default function MembersList({
                           />
                           <div className="flex space-x-1">
                             <button
-                              onClick={() => handleMemoUpdate(member.id, memoValue)}
+                              onClick={() => handleMemoUpdate(member.project_member_id, memoValue)}
                               className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700"
                             >
                               保存
@@ -334,7 +334,7 @@ export default function MembersList({
                         </div>
                       ) : (
                         <button
-                          onClick={() => startMemoEdit(member.id, member.memo || '')}
+                          onClick={() => startMemoEdit(member.project_member_id, member.memo || '')}
                           className="text-xs text-blue-600 hover:text-blue-800"
                         >
                           {member.memo ? 'メモを編集' : 'メモを追加'}
@@ -347,7 +347,7 @@ export default function MembersList({
                   <button
                     onClick={() => {
                       if (confirm(`${member.name}をメンバーから削除しますか？`)) {
-                        handleMemberRemoved(member.id);
+                        handleMemberRemoved(member.project_member_id);
                       }
                     }}
                     className="text-red-600 hover:text-red-800 text-sm font-medium"
