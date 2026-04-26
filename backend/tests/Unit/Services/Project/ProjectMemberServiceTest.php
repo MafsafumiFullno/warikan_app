@@ -972,7 +972,7 @@ class ProjectMemberServiceTest extends TestCase
 
         // テストの独立性を保つため、メンバーを直接作成
         $projectMember = $this->createProjectMember($project->project_id, $member->customer_id, 2, 1.00);
-        $memberId = $projectMember->id; // updateMemberMemoはidを使用
+        $memberId = $projectMember->project_member_id; // updateMemberMemoはproject_member_idを使用
 
         // メモを更新
         $result = $this->projectMemberService->updateMemberMemo($owner->customer_id, $project->project_id, $memberId, [
@@ -983,7 +983,9 @@ class ProjectMemberServiceTest extends TestCase
         $this->assertEquals('テストメモ', $result['memo']);
 
         // データベースで確認
-        $updatedMember = ProjectMember::find($memberId);
+        $updatedMember = ProjectMember::where('project_id', $project->project_id)
+            ->where('project_member_id', $memberId)
+            ->first();
         $this->assertEquals('テストメモ', $updatedMember->memo);
     }
 
@@ -1014,7 +1016,7 @@ class ProjectMemberServiceTest extends TestCase
             'memo' => '既存のメモ',
             'del_flg' => false,
         ]);
-        $memberId = $projectMember->id;
+        $memberId = $projectMember->project_member_id;
 
         // メモをnullに更新
         $result = $this->projectMemberService->updateMemberMemo($owner->customer_id, $project->project_id, $memberId, [
@@ -1024,7 +1026,9 @@ class ProjectMemberServiceTest extends TestCase
         $this->assertNull($result['memo']);
 
         // データベースで確認
-        $updatedMember = ProjectMember::find($memberId);
+        $updatedMember = ProjectMember::where('project_id', $project->project_id)
+            ->where('project_member_id', $memberId)
+            ->first();
         $this->assertNull($updatedMember->memo);
     }
 
@@ -1046,7 +1050,7 @@ class ProjectMemberServiceTest extends TestCase
         ]);
 
         $projectMember = $this->createProjectMember($project->project_id, $member->customer_id, 2, 1.00);
-        $memberId = $projectMember->id;
+        $memberId = $projectMember->project_member_id;
 
         // 最大長のメモを設定
         $maxMemo = str_repeat('a', 1000);
@@ -1075,7 +1079,7 @@ class ProjectMemberServiceTest extends TestCase
         ]);
 
         $projectMember = $this->createProjectMember($project->project_id, $member->customer_id, 2, 1.00);
-        $memberId = $projectMember->id;
+        $memberId = $projectMember->project_member_id;
 
         // 最大長を超えるメモを設定（バリデーションエラー）
         $this->expectException(\Illuminate\Validation\ValidationException::class);
@@ -1129,7 +1133,7 @@ class ProjectMemberServiceTest extends TestCase
         ]);
 
         $projectMember = $this->createProjectMember($project->project_id, $member->customer_id, 2, 1.00);
-        $memberId = $projectMember->id;
+        $memberId = $projectMember->project_member_id;
 
         // オーナー権限のないユーザーが更新しようとする
         $this->expectException(\Exception::class);
@@ -1160,7 +1164,7 @@ class ProjectMemberServiceTest extends TestCase
         // 削除されたメンバーを作成
         $projectMember = $this->createProjectMember($project->project_id, $member->customer_id, 2, 1.00);
         $projectMember->update(['del_flg' => true]);
-        $memberId = $projectMember->id;
+        $memberId = $projectMember->project_member_id;
 
         // 削除されたメンバーを更新しようとする
         $this->expectException(\Exception::class);
