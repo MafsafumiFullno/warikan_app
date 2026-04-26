@@ -88,7 +88,7 @@ class ProjectMemberService extends BaseService
         $this->validateOwnerAccess($customerId, $projectId);
 
         // メンバーを更新
-        $projectMember = $this->getProjectMemberById($projectId, $memberId);
+        $projectMember = $this->getProjectMemberByProjectMemberIdLocal($projectId, $memberId);
         $projectMember->update(['memo' => $validated['memo'] ?? null]);
 
         return ['memo' => $projectMember->memo];
@@ -194,7 +194,6 @@ class ProjectMemberService extends BaseService
 
         // プロジェクト内での次のproject_member_idを取得
         $nextProjectMemberId = ProjectMember::where('project_id', $projectId)
-                                          ->where('del_flg', false)
                                           ->max('project_member_id') + 1;
 
         return ProjectMember::create([
