@@ -135,6 +135,23 @@ npm run dev
 - **バックエンドAPI**: http://localhost:8000
 - **APIテストページ**: http://localhost:3000/api-test
 
+### 4.5 E2E テスト（Playwright）
+
+フロントエンドに Playwright ベースの E2E テスト環境を用意しています。
+
+```bash
+# 1回目のみ（ブラウザをインストール）
+npm --prefix frontend run e2e:install
+
+# E2E 実行
+npm --prefix frontend run e2e
+
+# UI モードで実行
+npm --prefix frontend run e2e:ui
+```
+
+現在同梱している E2E は、画面遷移とゲストログイン導線のスモークテストです。
+
 ### 5. 開発終了時
 
 ```bash
@@ -173,6 +190,7 @@ docker compose down
 
 より詳細な情報については、以下のドキュメントを参照してください：
 
+- [AI駆動開発ガイド](README_AI_DRIVEN_DEVELOPMENT.md)
 - [詳細な環境構築手順](docs/割り勘アプリ_バックエンド環境構築.txt)
 - [技術スタック・アーキテクチャ詳細](docs/割り勘アプリ_技術スタック_アーキテクチャ.txt)
 - [データベース設計図](docs/ER-Diagram.drawio)
