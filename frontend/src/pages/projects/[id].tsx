@@ -35,7 +35,6 @@ interface Accounting {
 }
 
 interface Member {
-  id: number;
   project_member_id: number;
   customer_id: number;
   role: string;

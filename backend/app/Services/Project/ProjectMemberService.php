@@ -209,23 +209,6 @@ class ProjectMemberService extends BaseService
     }
 
     /**
-     * プロジェクトメンバーを取得（IDで）
-     */
-    private function getProjectMemberById(int $projectId, int $memberId): ProjectMember
-    {
-        $projectMember = ProjectMember::where('id', $memberId)
-                                     ->where('project_id', $projectId)
-                                     ->where('del_flg', false)
-                                     ->first();
-        
-        if (!$projectMember) {
-            throw new \Exception('メンバーが見つかりません');
-        }
-
-        return $projectMember;
-    }
-
-    /**
      * プロジェクトメンバーを取得（project_member_idで）
      */
     private function getProjectMemberByProjectMemberIdLocal(int $projectId, int $memberId): ProjectMember
@@ -257,7 +240,6 @@ class ProjectMemberService extends BaseService
             ->sum('accounting_amount');
         
         return [
-            'id' => $member->id,
             'project_member_id' => $member->project_member_id,
             'customer_id' => $member->customer_id,
             'role' => $member->role->role_code,

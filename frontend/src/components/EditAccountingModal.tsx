@@ -21,7 +21,6 @@ interface Accounting {
 }
 
 interface Member {
-  id: number;
   project_member_id: number;
   customer_id: number;
   role: string;
@@ -261,8 +260,8 @@ export default function EditAccountingModal({
                     <label key={member.project_member_id} className="flex items-center space-x-2">
                       <input
                         type="checkbox"
-                        checked={formData.target_member_ids.includes(member.id)}
-                        onChange={(e) => handleTargetMemberChange(member.id, e.target.checked)}
+                        checked={formData.target_member_ids.includes(member.project_member_id)}
+                        onChange={(e) => handleTargetMemberChange(member.project_member_id, e.target.checked)}
                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
                       <span className="text-sm text-gray-700">
