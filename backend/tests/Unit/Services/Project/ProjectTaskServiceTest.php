@@ -189,6 +189,7 @@ class ProjectTaskServiceTest extends TestCase
         $this->assertArrayHasKey('target_member_ids', $accounting);
         $this->assertCount(2, $accounting['target_members']);
         $this->assertCount(2, $accounting['target_member_ids']);
+        $this->assertEqualsCanonicalizing([1, 2], $accounting['target_member_ids']);
     }
 
     /**
@@ -359,7 +360,7 @@ class ProjectTaskServiceTest extends TestCase
             'accounting_name' => '新規会計',
             'amount' => 5000,
             'member_name' => 'メンバー1',
-            'target_member_ids' => [$member1->id, $member2->id],
+            'target_member_ids' => [$member1->project_member_id, $member2->project_member_id],
         ];
 
         $result = $this->projectTaskService->createProjectTask($customer->customer_id, $project->project_id, $data);
@@ -558,13 +559,14 @@ class ProjectTaskServiceTest extends TestCase
         $customer = $this->createCustomer();
         $project = $this->createProject($customer->customer_id);
 
-        $this->expectException(ValidationException::class);
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('対象メンバーが見つかりません');
 
         $this->projectTaskService->createProjectTask($customer->customer_id, $project->project_id, [
             'accounting_name' => '新規会計',
             'amount' => 5000,
             'member_name' => 'テストメンバー',
-            'target_member_ids' => [999], // 存在しないメンバーID
+            'target_member_ids' => [999], // 存在しない project_member_id
         ]);
     }
 
@@ -809,7 +811,7 @@ class ProjectTaskServiceTest extends TestCase
             'accounting_name' => '新規会計',
             'amount' => 5000,
             'member_name' => 'テストメンバー',
-            'target_member_ids' => [$member->id, $member->id, $member->id], // 重複
+            'target_member_ids' => [$member->project_member_id, $member->project_member_id, $member->project_member_id], // 重複
         ];
 
         $result = $this->projectTaskService->createProjectTask($customer->customer_id, $project->project_id, $data);
@@ -846,7 +848,7 @@ class ProjectTaskServiceTest extends TestCase
             'accounting_name' => '新規会計',
             'amount' => 5000,
             'member_name' => 'テストメンバー',
-            'target_member_ids' => [$member->id],
+            'target_member_ids' => [$member->project_member_id],
         ];
 
         $result = $this->projectTaskService->createProjectTask($customer->customer_id, $project->project_id, $data);
@@ -928,15 +930,15 @@ class ProjectTaskServiceTest extends TestCase
             'accounting_name' => '更新された会計',
             'amount' => 5000,
             'member_name' => 'テストメンバー',
-            'target_member_ids' => [$member2->id, $member3->id], // メンバーを変更
+            'target_member_ids' => [$member2->project_member_id, $member3->project_member_id], // メンバーを変更
         ];
 
         $result = $this->projectTaskService->updateProjectTask($customer->customer_id, $project->project_id, $task->task_id, $data);
 
         $this->assertCount(2, $result['accounting']['target_members']);
-        $this->assertContains($member2->id, $result['accounting']['target_member_ids']);
-        $this->assertContains($member3->id, $result['accounting']['target_member_ids']);
-        $this->assertNotContains($member1->id, $result['accounting']['target_member_ids']);
+        $this->assertContains($member2->project_member_id, $result['accounting']['target_member_ids']);
+        $this->assertContains($member3->project_member_id, $result['accounting']['target_member_ids']);
+        $this->assertNotContains($member1->project_member_id, $result['accounting']['target_member_ids']);
 
         // データベースを確認
         $taskMembers = ProjectTaskMember::where('task_id', $task->task_id)
@@ -1083,7 +1085,7 @@ class ProjectTaskServiceTest extends TestCase
             'accounting_name' => '更新された会計',
             'amount' => 5000,
             'member_name' => 'テストメンバー',
-            'target_member_ids' => [$member->id], // 復活させる
+            'target_member_ids' => [$member->project_member_id], // 復活させる
         ];
 
         $result = $this->projectTaskService->updateProjectTask($customer->customer_id, $project->project_id, $task->task_id, $data);
@@ -1194,7 +1196,7 @@ class ProjectTaskServiceTest extends TestCase
             'accounting_name' => '更新された会計',
             'amount' => 5000,
             'member_name' => 'テストメンバー',
-            'target_member_ids' => [$member->id, $member->id, $member->id], // 重複
+            'target_member_ids' => [$member->project_member_id, $member->project_member_id, $member->project_member_id], // 重複
         ];
 
         $result = $this->projectTaskService->updateProjectTask($customer->customer_id, $project->project_id, $task->task_id, $data);
@@ -1241,7 +1243,7 @@ class ProjectTaskServiceTest extends TestCase
             'accounting_name' => '更新された会計',
             'amount' => 5000,
             'member_name' => 'テストメンバー',
-            'target_member_ids' => [$member->id],
+            'target_member_ids' => [$member->project_member_id],
         ];
 
         $result = $this->projectTaskService->updateProjectTask($customer->customer_id, $project->project_id, $task->task_id, $data);

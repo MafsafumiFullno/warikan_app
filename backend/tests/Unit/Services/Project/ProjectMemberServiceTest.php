@@ -396,7 +396,7 @@ class ProjectMemberServiceTest extends TestCase
         $memberData = $result['members'][0];
         
         // formatMemberDataの全フィールドを確認
-        $this->assertArrayHasKey('id', $memberData);
+        $this->assertArrayNotHasKey('id', $memberData);
         $this->assertArrayHasKey('project_member_id', $memberData);
         $this->assertArrayHasKey('customer_id', $memberData);
         $this->assertArrayHasKey('role', $memberData);
@@ -410,7 +410,6 @@ class ProjectMemberServiceTest extends TestCase
         $this->assertArrayHasKey('total_expense', $memberData);
         
         // 値の確認
-        $this->assertEquals($projectMember->id, $memberData['id']);
         $this->assertEquals(2, $memberData['project_member_id']);
         $this->assertEquals($member->customer_id, $memberData['customer_id']);
         $this->assertEquals('member', $memberData['role']);
