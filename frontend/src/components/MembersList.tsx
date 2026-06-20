@@ -3,6 +3,7 @@ import { apiFetch } from '@/lib/api';
 import AddMemberModal from './AddMemberModal';
 
 interface Member {
+  id: number;
   project_member_id: number;
   customer_id: number;
   role: string;
