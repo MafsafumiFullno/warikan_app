@@ -1,0 +1,56 @@
+---
+description: Laravel API・Service 層の規約
+globs: backend/**/*.php
+alwaysApply: false
+---
+
+# Backend（Laravel）
+
+## レイヤー責務
+
+| 層 | 責務 |
+|----|------|
+| **Controller** | 認証ユーザー取得、`Service` 呼び出し、`JsonResponse` 返却、`handleException` |
+| **Service** | バリデーション、権限、ビジネスロジック、DB 操作、レスポンス整形 |
+| **Model** | Eloquent 定義・リレーションのみ（複雑なロジックは Service へ） |
+
+- プロジェクト系 Service は `App\Services\Project\*` に置き、`BaseService` を継承する
+- バリデーションは `$this->validateData($data, $rules)` を使う
+- 複数テーブル更新は `$this->beginTransaction()` / `commit` / `rollback` を検討する
+
+## Controller の型
+
+```php
+// ✅ 薄い Controller
+public function updateWeight(Request $request, int $projectId, int $memberId): JsonResponse
+{
+    try {
+        $customer = $request->user();
+        $result = $this->projectMemberService->updateMemberWeight(
+            $customer->customer_id, $projectId, $memberId, $request->all()
+        );
+        return response()->json($result);
+    } catch (\Exception $e) {
+        return $this->handleException($e, $request, $this->logger, '比重更新');
+    }
+}
+```
+
+## メンバー API の識別子
+
+- ルート `members/{memberId}` の `$memberId` は **`project_member_id`**
+- 取得例: `ProjectMember::where('project_member_id', $memberId)->where('project_id', $projectId)->where('del_flg', false)`
+
+## 権限
+
+- オーナー限定操作は `validateOwnerAccess($customerId, $projectId)` を使う
+- プロジェクト参加確認は `validateProjectAccess` を使う
+
+## API ルート
+
+- 認証必須グループ: `middleware(['auth:sanctum', 'auth.customer'])` + `prefix('projects')`
+- 新規エンドポイントは `routes/api.php` に追加し、既存の REST パターンに揃える
+
+## コメント
+
+- クラス・public メソッドには日本語の PHPDoc を付ける（既存ファイルに合わせる）

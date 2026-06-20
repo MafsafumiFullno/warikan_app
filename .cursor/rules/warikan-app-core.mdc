@@ -1,0 +1,35 @@
+---
+description: warikan_app 全体の方針・Git・共通ルール
+alwaysApply: true
+---
+
+# warikan_app — 共通
+
+## プロジェクト構成
+
+- **backend**: Laravel（API）— `app/Services`, `app/Http/Controllers`, `routes/api.php`
+- **frontend**: Next.js（Pages Router）— `src/pages`, `src/components`, `src/lib/api.ts`
+- ローカル開発: `docker compose up -d --build`（README 参照）
+
+## 実装の基本方針
+
+- 依頼範囲だけ変更する。無関係なリファクタ・ドキュメント追加はしない（明示依頼時を除く）
+- 既存の命名・レイヤー・エラーハンドリングに合わせる
+- ユーザー向け応答は **日本語**
+- **main への直接コミットはしない**。機能単位で `feature/...` ブランチ → PR
+- コミット・push はユーザーが明示したときのみ
+
+## ブランチ命名（例）
+
+- `feature/share-url-generation`
+- `feature/share-via-email-sns`
+- `fix/...` / `test/...` / `chore/...` / `infra/...`
+
+## ドメイン上の注意
+
+- 論理削除は `del_flg` を使う。取得時は `where('del_flg', false)` を忘れない
+- プロジェクト API の `{memberId}` / `{taskId}` は、文脈に応じて **`project_member_id` / タスク識別子** を指す。`project_members.id`（PK）と混同しない
+
+## 秘密情報
+
+- `.env`、トークン、認証情報をコミットしない

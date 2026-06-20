@@ -11,7 +11,7 @@ fi
 
 branch="$(git branch --show-current)"
 if [[ -z "$branch" || "$branch" == "main" || "$branch" == "master" ]]; then
-  echo "Create a feature/refactor/fix branch before opening a PR." >&2
+  echo "Create a feature/refactor/fix/chore branch before opening a PR." >&2
   exit 1
 fi
 

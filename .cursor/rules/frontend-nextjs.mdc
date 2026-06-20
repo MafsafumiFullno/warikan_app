@@ -1,0 +1,45 @@
+---
+description: Next.js フロントエンドの規約
+globs: frontend/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Frontend（Next.js）
+
+## API 通信
+
+- 必ず `@/lib/api` の `apiFetch` を使う（Bearer + CSRF + `credentials: 'include'`）
+- ベース URL は `NEXT_PUBLIC_API_BASE_URL`（未設定時 `http://localhost:8000`）
+
+```typescript
+// ✅
+await apiFetch(`/api/projects/${projectId}/members/${memberId}/split-weight`, {
+  method: 'PUT',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ split_weight: newWeight }),
+});
+```
+
+## メンバー ID
+
+- メンバー API レスポンスに `id`（DB PK）は含まれない。識別子は **`member.project_member_id`** のみ
+- API パス・更新・削除・会計の `target_member_ids` でも **`project_member_id`** を使う
+
+```typescript
+// ❌ API 呼び出しに PK を渡す
+handleWeightUpdate(member.id, weight);
+
+// ✅
+handleWeightUpdate(member.project_member_id, weight);
+```
+
+## コンポーネント
+
+- 関数コンポーネント + hooks
+- ローディング・エラーは既存画面（`MembersList` 等）と同様に `useState` で扱う
+- スタイルは Tailwind（既存の `className` パターンに合わせる）
+
+## 型
+
+- API レスポンス用に `interface` をコンポーネント直上または同ファイルに定義
+- バックエンドの JSON キー（`snake_case`）に合わせる（例: `split_weight`, `project_member_id`）
