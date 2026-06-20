@@ -102,16 +102,19 @@ class ProjectTaskService extends BaseService
         ]);
 
         // オーナー権限チェック
-        $this->validateOwnerAccess($customerId, $projectId);
+        $project = $this->validateOwnerAccess($customerId, $projectId);
 
         // プロジェクトタスクを取得
         $projectTask = $this->getProjectTask($projectId, $taskId);
 
-        return $this->executeInTransaction(function () use ($projectTask, $validated, $taskId) {
+        return $this->executeInTransaction(function () use ($project, $projectTask, $validated, $taskId, $customerId) {
+            $payerInfo = $this->getPayerInfo($project, $validated['member_name'], $customerId);
+
             // プロジェクトタスクを更新
             $projectTask->update([
                 'task_name' => $validated['accounting_name'],
                 'task_member_name' => $validated['member_name'],
+                'member_id' => $payerInfo['member_id'],
                 'accounting_amount' => $validated['amount'],
                 'accounting_type' => $validated['accounting_type'] ?? 'expense',
                 'breakdown' => $validated['description'] ?? null,
@@ -175,34 +178,27 @@ class ProjectTaskService extends BaseService
      */
     private function getPayerInfo(Project $project, string $memberName, $customerId): array
     {
-        // 支払人（task_member_name）のプロジェクトメンバーIDを取得
         $payerMember = ProjectMember::where('project_id', $project->project_id)
-            ->where('member_name', $memberName)
             ->where('del_flg', false)
-            ->first();
-
-        // オーナーの名前を取得（オーナーが支払った場合の判定用）
-        $ownerName = $this->getOwnerName($project);
+            ->with(['customer', 'role'])
+            ->get()
+            ->first(function (ProjectMember $member) use ($memberName) {
+                return $this->getMemberName($member) === $memberName;
+            });
 
         if ($payerMember) {
             return [
                 'type' => 'member',
                 'member_id' => $payerMember->id,
-                'customer_id' => null
-            ];
-        } elseif ($memberName === $ownerName) {
-            return [
-                'type' => 'owner',
-                'member_id' => null,
-                'customer_id' => $project->customer->customer_id
-            ];
-        } else {
-            return [
-                'type' => 'guest',
-                'member_id' => null,
-                'customer_id' => $customerId
+                'customer_id' => $payerMember->customer_id
             ];
         }
+
+        return [
+            'type' => 'guest',
+            'member_id' => null,
+            'customer_id' => $customerId
+        ];
     }
 
     /**

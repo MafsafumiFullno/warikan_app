@@ -313,13 +313,18 @@ class ProjectTaskServiceTest extends TestCase
             'last_name' => '山田',
         ]);
         $project = $this->createProject($customer->customer_id);
+        $ownerMember = $this->createProjectMember($project->project_id, [
+            'project_member_id' => 1,
+            'customer_id' => $customer->customer_id,
+            'role_id' => $this->ownerRole->role_id,
+        ]);
 
         $data = [
             'accounting_name' => '新規会計',
             'amount' => 5000.50,
             'description' => 'テスト用の会計',
             'accounting_type' => 'expense',
-            'member_name' => '山田 太郎',
+            'member_name' => '太郎 山田',
         ];
 
         $result = $this->projectTaskService->createProjectTask($customer->customer_id, $project->project_id, $data);
@@ -329,12 +334,13 @@ class ProjectTaskServiceTest extends TestCase
         $this->assertEquals(5000, $result['accounting']['accounting_amount']); // 整数に変換される
         $this->assertEquals('テスト用の会計', $result['accounting']['breakdown']);
         $this->assertEquals('expense', $result['accounting']['accounting_type']);
-        $this->assertEquals('山田 太郎', $result['accounting']['task_member_name']);
+        $this->assertEquals('太郎 山田', $result['accounting']['task_member_name']);
 
         // データベースに保存されていることを確認
         $task = ProjectTask::where('task_id', $result['accounting']['task_id'])->first();
         $this->assertNotNull($task);
         $this->assertEquals(1, $task->project_task_code); // 最初のタスクコード
+        $this->assertEquals($ownerMember->id, $task->member_id);
     }
 
     /**
@@ -410,17 +416,22 @@ class ProjectTaskServiceTest extends TestCase
             'last_name' => '山田',
         ]);
         $project = $this->createProject($customer->customer_id);
+        $ownerMember = $this->createProjectMember($project->project_id, [
+            'project_member_id' => 1,
+            'customer_id' => $customer->customer_id,
+            'role_id' => $this->ownerRole->role_id,
+        ]);
 
         $data = [
             'accounting_name' => '新規会計',
             'amount' => 5000,
-            'member_name' => '山田 太郎',
+            'member_name' => '太郎 山田',
         ];
 
         $result = $this->projectTaskService->createProjectTask($customer->customer_id, $project->project_id, $data);
 
         $task = ProjectTask::where('task_id', $result['accounting']['task_id'])->first();
-        $this->assertNull($task->member_id); // オーナーの場合はmember_idがnull
+        $this->assertEquals($ownerMember->id, $task->member_id);
     }
 
     /**
