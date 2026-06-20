@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\ProjectMember;
 use App\Models\ProjectRole;
 use App\Models\ProjectTask;
+use App\Models\ProjectTaskMember;
 use App\Services\BaseService;
 
 class ProjectMemberService extends BaseService
@@ -122,11 +123,16 @@ class ProjectMemberService extends BaseService
         // オーナー権限チェック
         $this->validateOwnerAccess($customerId, $projectId);
 
-        // メンバーを論理削除
-        $projectMember = $this->getProjectMemberByProjectMemberIdLocal($projectId, $memberId);
-        $this->softDelete($projectMember);
+        return $this->executeInTransaction(function () use ($projectId, $memberId) {
+            // メンバーを論理削除
+            $projectMember = $this->getProjectMemberByProjectMemberIdLocal($projectId, $memberId);
+            $this->softDelete($projectMember);
 
-        return ['message' => 'メンバーが正常に削除されました'];
+            // 削除したメンバーを既存会計の対象メンバー履歴からも除外
+            $this->removeMemberFromAccountingTargets($projectMember->id);
+
+            return ['message' => 'メンバーが正常に削除されました'];
+        });
     }
 
 
@@ -149,7 +155,7 @@ class ProjectMemberService extends BaseService
                                           ->where('del_flg', false)
                                           ->exists();
         }
-        
+
         if ($existingMember) {
             throw new \Exception('このメンバーは既に追加されています');
         }
@@ -164,7 +170,7 @@ class ProjectMemberService extends BaseService
             $existingCustomer = Customer::where('email', $email)
                                       ->where('del_flg', false)
                                       ->first();
-            
+
             if ($existingCustomer) {
                 return $existingCustomer->customer_id;
             } else {
@@ -178,7 +184,7 @@ class ProjectMemberService extends BaseService
                 return $newCustomer->customer_id;
             }
         }
-        
+
         return null;
     }
 
@@ -217,7 +223,7 @@ class ProjectMemberService extends BaseService
                                      ->where('project_id', $projectId)
                                      ->where('del_flg', false)
                                      ->first();
-        
+
         if (!$projectMember) {
             throw new \Exception('メンバーが見つかりません');
         }
@@ -234,7 +240,7 @@ class ProjectMemberService extends BaseService
                                      ->where('project_id', $projectId)
                                      ->where('del_flg', false)
                                      ->first();
-        
+
         if (!$projectMember) {
             throw new \Exception('メンバーが見つかりません');
         }
@@ -243,19 +249,29 @@ class ProjectMemberService extends BaseService
     }
 
     /**
+     * メンバーを既存会計の対象メンバーから除外
+     */
+    private function removeMemberFromAccountingTargets(int $memberId): void
+    {
+        ProjectTaskMember::where('member_id', $memberId)
+            ->where('del_flg', false)
+            ->update(['del_flg' => true]);
+    }
+
+    /**
      * メンバーデータをフォーマット
      */
     private function formatMemberData(ProjectMember $member, int $projectId): array
     {
-        $memberName = $this->getMemberName($member);
-        
         // メンバーの支出合計を計算
         $totalExpense = ProjectTask::where('project_id', $projectId)
-            ->where('task_member_name', $memberName)
+            ->where('member_id', $member->id)
             ->where('accounting_type', 'expense')
             ->where('del_flg', false)
             ->sum('accounting_amount');
-        
+
+        $memberName = $this->getMemberName($member);
+
         return [
             'id' => $member->id,
             'project_member_id' => $member->project_member_id,
@@ -265,11 +281,11 @@ class ProjectMemberService extends BaseService
             'split_weight' => $member->split_weight,
             'memo' => $member->memo,
             'name' => $memberName,
-            'email' => $member->customer_id 
-                ? $member->customer->email 
+            'email' => $member->customer_id
+                ? $member->customer->email
                 : $member->member_email,
-            'is_guest' => $member->customer_id 
-                ? $member->customer->is_guest 
+            'is_guest' => $member->customer_id
+                ? $member->customer->is_guest
                 : true,
             'joined_at' => $member->created_at,
             'total_expense' => $this->roundAmount((float) $totalExpense),

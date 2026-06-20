@@ -21,7 +21,8 @@ interface Accounting {
   project_task_code: number;
   task_name: string;
   task_member_name: string;
-  customer_id: number;
+  member_id?: number | null;
+  customer_id?: number;
   accounting_amount: number;
   accounting_type: string;
   breakdown?: string;

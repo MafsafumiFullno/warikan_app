@@ -1,0 +1,13 @@
+---
+description: PR作成までのGit操作とテンプレート運用
+alwaysApply: true
+---
+
+# PR / Git Workflow
+
+- コミット・push・PR作成は、ユーザーが明示したときのみ行う。
+- `main` / `master` への直接コミットや直接pushはしない。
+- PR前の確認は `scripts/pr-ready-check.sh` を優先して使う。
+- PR作成は `scripts/create-pr.sh` を優先して使う。未コミット差分がある場合は、先にコミットする。
+- PR本文は `.github/pull_request_template.md` に沿って、Summary / Test Plan / Notes を埋める。
+- 既存の未追跡ファイルやユーザー作業ファイルは、依頼範囲外ならステージしない。

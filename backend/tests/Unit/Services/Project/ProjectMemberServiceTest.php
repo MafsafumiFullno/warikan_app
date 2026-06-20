@@ -7,6 +7,9 @@ use App\Models\Customer;
 use App\Models\Project;
 use App\Models\ProjectMember;
 use App\Models\ProjectRole;
+use App\Models\ProjectTask;
+use App\Models\ProjectTaskMember;
+use App\Services\Project\ProjectTaskService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -422,6 +425,59 @@ class ProjectMemberServiceTest extends TestCase
         $this->assertFalse($memberData['is_guest']);
         $this->assertNotNull($memberData['joined_at']);
         $this->assertIsNumeric($memberData['total_expense']); // ProjectTaskがない場合は0
+    }
+
+    /**
+     * 同名メンバーでもmember_idで支出合計を集計できること
+     */
+    public function test_getProjectMembers_calculates_total_expense_by_member_id(): void
+    {
+        $owner = $this->createCustomer([
+            'email' => 'owner@example.com',
+            'nick_name' => 'オーナー',
+        ]);
+
+        $memberCustomer1 = $this->createCustomer([
+            'email' => 'member1@example.com',
+            'nick_name' => '同名メンバー',
+        ]);
+
+        $memberCustomer2 = $this->createCustomer([
+            'email' => 'member2@example.com',
+            'nick_name' => '同名メンバー',
+        ]);
+
+        $project = $this->createProject($owner->customer_id);
+        $member1 = $this->createProjectMember($project->project_id, $memberCustomer1->customer_id, 1);
+        $member2 = $this->createProjectMember($project->project_id, $memberCustomer2->customer_id, 2);
+
+        ProjectTask::create([
+            'project_id' => $project->project_id,
+            'project_task_code' => 1,
+            'task_name' => '会計1',
+            'task_member_name' => '同名メンバー',
+            'member_id' => $member1->id,
+            'accounting_amount' => 1000,
+            'accounting_type' => 'expense',
+            'del_flg' => false,
+        ]);
+
+        ProjectTask::create([
+            'project_id' => $project->project_id,
+            'project_task_code' => 2,
+            'task_name' => '会計2',
+            'task_member_name' => '同名メンバー',
+            'member_id' => $member2->id,
+            'accounting_amount' => 2500,
+            'accounting_type' => 'expense',
+            'del_flg' => false,
+        ]);
+
+        $result = $this->projectMemberService->getProjectMembers($owner->customer_id, $project->project_id);
+        $members = collect($result['members']);
+
+        $this->assertEquals(1000, $members->firstWhere('id', $member1->id)['total_expense']);
+        $this->assertEquals(2500, $members->firstWhere('id', $member2->id)['total_expense']);
     }
 
     // ==== プロジェクトのメンバー追加テスト =====
@@ -1208,6 +1264,80 @@ class ProjectMemberServiceTest extends TestCase
             ->where('project_member_id', $projectMemberId)
             ->first();
         $this->assertTrue($deletedMember->del_flg);
+    }
+
+    /**
+     * メンバー削除時に既存会計の対象メンバー履歴からも除外されること
+     */
+    public function test_removeProjectMember_removes_member_from_accounting_history(): void
+    {
+        $owner = $this->createCustomer([
+            'email' => 'owner@example.com',
+            'nick_name' => 'オーナー',
+        ]);
+
+        $memberA = $this->createCustomer([
+            'email' => 'member-a@example.com',
+            'nick_name' => 'A',
+        ]);
+
+        $memberB = $this->createCustomer([
+            'email' => 'member-b@example.com',
+            'nick_name' => 'B',
+        ]);
+
+        $memberC = $this->createCustomer([
+            'email' => 'member-c@example.com',
+            'nick_name' => 'C',
+        ]);
+
+        $project = $this->createProject($owner->customer_id);
+        $projectMemberA = $this->createProjectMember($project->project_id, $memberA->customer_id, 1);
+        $projectMemberB = $this->createProjectMember($project->project_id, $memberB->customer_id, 2);
+        $projectMemberC = $this->createProjectMember($project->project_id, $memberC->customer_id, 3);
+
+        $task = ProjectTask::create([
+            'project_id' => $project->project_id,
+            'project_task_code' => 1,
+            'task_name' => 'A/B/C会計',
+            'task_member_name' => 'A',
+            'member_id' => $projectMemberA->id,
+            'accounting_amount' => 3000,
+            'accounting_type' => 'expense',
+            'del_flg' => false,
+        ]);
+
+        foreach ([$projectMemberA, $projectMemberB, $projectMemberC] as $projectMember) {
+            ProjectTaskMember::create([
+                'task_id' => $task->task_id,
+                'member_id' => $projectMember->id,
+                'del_flg' => false,
+            ]);
+        }
+
+        $this->projectMemberService->removeProjectMember(
+            $owner->customer_id,
+            $project->project_id,
+            $projectMemberC->project_member_id
+        );
+
+        $this->assertTrue($projectMemberC->fresh()->del_flg);
+        $this->assertTrue(ProjectTaskMember::where('task_id', $task->task_id)
+            ->where('member_id', $projectMemberC->id)
+            ->first()
+            ->del_flg);
+
+        $membersResult = $this->projectMemberService->getProjectMembers($owner->customer_id, $project->project_id);
+        $this->assertNotContains($projectMemberC->id, collect($membersResult['members'])->pluck('id')->all());
+
+        $taskService = app(ProjectTaskService::class);
+        $tasksResult = $taskService->getProjectTasks($owner->customer_id, $project->project_id);
+        $accounting = $tasksResult['accountings'][0];
+
+        $this->assertSame(['A', 'B'], array_values($accounting['target_members']));
+        $this->assertContains($projectMemberA->id, $accounting['target_member_ids']);
+        $this->assertContains($projectMemberB->id, $accounting['target_member_ids']);
+        $this->assertNotContains($projectMemberC->id, $accounting['target_member_ids']);
     }
 
     /**
