@@ -1,0 +1,43 @@
+---
+description: バックエンドテストの規約
+globs: backend/tests/**/*
+alwaysApply: false
+---
+
+# テスト（PHPUnit / Laravel）
+
+## 配置・実行
+
+- Service の単体テスト: `tests/Unit/Services/Project/*Test.php`
+- 実行例: `php artisan test tests/Unit/Services/Project/ProjectMemberServiceTest.php`
+- Docker 内: `docker compose exec api php artisan test ...`
+
+## パターン
+
+- `RefreshDatabase` を使い、マイグレーション済みの `ProjectRole`（`owner` / `member`）を `setUp` で取得
+- 共通データは `createCustomer`, `createProject`, `createProjectMember` 等の **protected ヘルパー** で作る
+- メソッド名: `test_<メソッド名>_<success|fails>_<条件>`（既存に合わせる）
+
+## アサーション
+
+- Service の戻り値と **DB の実データ** の両方を確認する（重要な更新系）
+
+```php
+$result = $this->projectMemberService->updateMemberWeight(..., $memberId, ['split_weight' => 2.5]);
+$this->assertEquals(2.5, $result['split_weight']);
+
+$updated = ProjectMember::where('project_id', $project->project_id)
+    ->where('project_member_id', $memberId)
+    ->first();
+$this->assertNotNull($updated);
+$this->assertEquals(2.5, $updated->split_weight);
+```
+
+## メンバー ID（テスト）
+
+- `$memberId` は **`project_member_id`** を代入する
+- DB 確認も `where('project_member_id', $memberId)` で行う
+
+## 新機能時
+
+- 正常系・権限エラー・存在しない ID・論理削除済み、境界値を最低限カバーする
