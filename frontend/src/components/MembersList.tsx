@@ -232,7 +232,7 @@ export default function MembersList({
         ) : (
           <div className="space-y-3">
             {members.map((member) => (
-              <div key={member.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+              <div key={member.project_member_id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
                 <div className="flex-1">
                   <div className="flex items-center space-x-2">
                     <h3 className="font-medium text-gray-900">{member.name}</h3>
@@ -254,7 +254,7 @@ export default function MembersList({
                   <div className="flex items-center space-x-4 mt-2">
                     <div className="flex items-center space-x-2">
                       <span className="text-xs text-gray-500">割り勘比重:</span>
-                      {editingWeight === member.id ? (
+                      {editingWeight === member.project_member_id ? (
                         <div className="flex items-center space-x-1">
                           <input
                             type="number"
@@ -283,7 +283,7 @@ export default function MembersList({
                           <span className="text-sm font-medium">{member.split_weight}</span>
                           {isOwner && (
                             <button
-                              onClick={() => startWeightEdit(member.id, member.split_weight)}
+                              onClick={() => startWeightEdit(member.project_member_id, member.split_weight)}
                               className="text-xs text-blue-600 hover:text-blue-800"
                             >
                               編集

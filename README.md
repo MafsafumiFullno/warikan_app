@@ -40,6 +40,7 @@
 ### 主要機能
 - **ユーザー認証**: ゲストログイン、ユーザー登録、ログイン
 - **プロジェクト管理**: プロジェクトのCRUD操作
+- **共有リンク**: オーナー限定で共有リンクを発行し、閲覧専用の公開ページでプロジェクト詳細を共有
 - **割り勘計算**: 複数の割り勘方法に対応した計算ロジック
 - **精算機能**: プロジェクト完了時の精算処理
 
@@ -99,6 +100,12 @@ DB_USERNAME=user
 DB_PASSWORD=password
 ```
 
+共有リンクURLの生成に使うフロントエンドURLも設定してください：
+
+```env
+FRONTEND_URL=http://localhost:3000
+```
+
 #### マイグレーション実行
 
 ```bash
@@ -128,6 +135,23 @@ npm run dev
 - **バックエンドAPI**: http://localhost:8000
 - **APIテストページ**: http://localhost:3000/api-test
 
+### 4.5 E2E テスト（Playwright）
+
+フロントエンドに Playwright ベースの E2E テスト環境を用意しています。
+
+```bash
+# 1回目のみ（ブラウザをインストール）
+npm --prefix frontend run e2e:install
+
+# E2E 実行
+npm --prefix frontend run e2e
+
+# UI モードで実行
+npm --prefix frontend run e2e:ui
+```
+
+現在同梱している E2E は、画面遷移とゲストログイン導線のスモークテストです。
+
 ### 5. 開発終了時
 
 ```bash
@@ -152,7 +176,11 @@ docker compose down
 - `GET /api/projects/{id}` - プロジェクト詳細
 - `PUT /api/projects/{id}` - プロジェクト更新
 - `DELETE /api/projects/{id}` - プロジェクト削除
+- `POST /api/projects/{id}/share-link` - 共有リンク作成（オーナーのみ）
 - `POST /api/projects/{id}/settlement` - 精算実行
+
+### 共有リンク関連（公開）
+- `GET /api/share/{token}` - 共有リンク用プロジェクト詳細取得（認証不要）
 
 ### その他
 - `GET /api/example` - API疎通確認
@@ -162,6 +190,7 @@ docker compose down
 
 より詳細な情報については、以下のドキュメントを参照してください：
 
+- [AI駆動開発ガイド](README_AI_DRIVEN_DEVELOPMENT.md)
 - [詳細な環境構築手順](docs/割り勘アプリ_バックエンド環境構築.txt)
 - [技術スタック・アーキテクチャ詳細](docs/割り勘アプリ_技術スタック_アーキテクチャ.txt)
 - [データベース設計図](docs/ER-Diagram.drawio)
@@ -171,17 +200,9 @@ docker compose down
 ### 開発開始時
 ```bash
 # Docker起動
-docker compose up -d
+docker compose up -d --build
 
-# Laravelコンテナに入る
-docker compose exec app bash
-
-# Laravel起動（別ターミナルでも可）
-php artisan serve --host=0.0.0.0
-
-# フロントエンド起動
-cd frontend
-npm run dev
+# APIコンテナの Laravel は自動起動
 ```
 
 ### 開発終了時
@@ -190,12 +211,26 @@ npm run dev
 docker compose down
 ```
 
+## CD（Render）
+
+Render を使った CD の初期設定として `render.yaml` を用意しています。  
+GitHub と連携して `main` への push で自動デプロイする構成を想定しています。
+
+### 必要な設定
+- `APP_KEY` は Render 側でシークレットとして設定してください  
+  （例: `php artisan key:generate --show` の値）
+
+### 参考
+- `backend/Dockerfile.render` は Render 用の本番Dockerfile
+- `frontend/Dockerfile` は Next.js の本番Dockerfile
+
 ## セキュリティ
 
 - **認証**: Laravel Sanctum によるトークンベース認証
 - **CSRF保護**: Laravel のCSRF保護機能
 - **CORS設定**: API アクセス制御
 - **入力検証**: Laravel バリデーション機能
+- **共有リンク保護**: 推測困難なトークン発行 + ハッシュ保存 + 公開APIレート制限
 
 ## 今後の拡張予定
 - **リアルタイム通信**: WebSocket によるリアルタイム更新（他ユーザーとの共有編集）

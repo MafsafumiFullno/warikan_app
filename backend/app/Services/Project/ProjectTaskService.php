@@ -50,20 +50,28 @@ class ProjectTaskService extends BaseService
             'amount' => 'required|numeric|min:0.01',
             'description' => 'nullable|string|max:1000',
             'accounting_type' => 'nullable|string|max:50',
-            'member_name' => 'required|string|max:255',
+            'member_id' => 'nullable|integer|exists:project_members,id',
+            'member_name' => 'nullable|required_without:member_id|string|max:255',
             'target_member_ids' => 'nullable|array',
-            'target_member_ids.*' => 'integer|exists:project_members,id',
+            'target_member_ids.*' => 'integer|exists:project_members,project_member_id',
         ]);
 
         // プロジェクトの存在確認とオーナー権限チェック
         $project = $this->validateOwnerAccess($customerId, $projectId);
+
+        if (!empty($validated['target_member_ids'])) {
+            $validated['target_member_ids'] = $this->resolveTargetMemberIdsToInternalIds(
+                $projectId,
+                $validated['target_member_ids']
+            );
+        }
 
         return $this->executeInTransaction(function () use ($project, $projectId, $validated, $customerId) {
             // プロジェクトタスクコードを生成
             $nextTaskCode = $this->generateNextTaskCode($project);
 
             // 支払人情報を取得
-            $payerInfo = $this->getPayerInfo($project, $validated['member_name'], $customerId);
+            $payerInfo = $this->resolvePayerInfo($project, $validated, $customerId);
 
             // プロジェクトタスクデータを作成
             $projectTaskData = $this->buildProjectTaskData($projectId, $nextTaskCode, $validated, $payerInfo);
@@ -96,9 +104,10 @@ class ProjectTaskService extends BaseService
             'amount' => 'required|numeric|min:0.01',
             'description' => 'nullable|string|max:1000',
             'accounting_type' => 'nullable|string|max:50',
-            'member_name' => 'required|string|max:255',
+            'member_id' => 'nullable|integer|exists:project_members,id',
+            'member_name' => 'nullable|required_without:member_id|string|max:255',
             'target_member_ids' => 'nullable|array',
-            'target_member_ids.*' => 'integer|exists:project_members,id',
+            'target_member_ids.*' => 'integer|exists:project_members,project_member_id',
         ]);
 
         // オーナー権限チェック
@@ -118,6 +127,7 @@ class ProjectTaskService extends BaseService
                 'accounting_amount' => $validated['amount'],
                 'accounting_type' => $validated['accounting_type'] ?? 'expense',
                 'breakdown' => $validated['description'] ?? null,
+                'member_id' => $payerInfo['member_id'],
             ]);
 
             // 対象メンバーを更新
@@ -176,7 +186,24 @@ class ProjectTaskService extends BaseService
     /**
      * 支払人情報を取得
      */
-    private function getPayerInfo(Project $project, string $memberName, $customerId): array
+    private function resolvePayerInfo(Project $project, array $validated, $customerId): array
+    {
+        if (!empty($validated['member_id'])) {
+            $payerMember = $this->getProjectMember($project->project_id, (int) $validated['member_id']);
+
+            return [
+                'member_id' => $payerMember->id,
+                'member_name' => $this->getMemberName($payerMember),
+            ];
+        }
+
+        return $this->getPayerInfoByName($project, $validated['member_name']);
+    }
+
+    /**
+     * 支払人情報を名前から取得（旧入力の互換用）
+     */
+    private function getPayerInfoByName(Project $project, string $memberName): array
     {
         $payerMember = ProjectMember::where('project_id', $project->project_id)
             ->where('del_flg', false)
@@ -188,7 +215,6 @@ class ProjectTaskService extends BaseService
 
         if ($payerMember) {
             return [
-                'type' => 'member',
                 'member_id' => $payerMember->id,
                 'customer_id' => $payerMember->customer_id
             ];
@@ -210,7 +236,7 @@ class ProjectTaskService extends BaseService
             'project_id' => $projectId,
             'project_task_code' => $nextTaskCode,
             'task_name' => $validated['accounting_name'],
-            'task_member_name' => $validated['member_name'],
+            'task_member_name' => $payerInfo['member_name'],
             'accounting_amount' => $validated['amount'],
             'accounting_type' => $validated['accounting_type'] ?? 'expense',
             'breakdown' => $validated['description'] ?? null,
@@ -360,6 +386,30 @@ class ProjectTaskService extends BaseService
     }
 
     /**
+     * APIの project_member_id を内部保存用の project_members.id に変換
+     */
+    private function resolveTargetMemberIdsToInternalIds(int $projectId, array $projectMemberIds): array
+    {
+        $projectMemberIds = array_values(array_unique(array_map('intval', $projectMemberIds)));
+        $internalIds = [];
+
+        foreach ($projectMemberIds as $projectMemberId) {
+            $member = ProjectMember::where('project_id', $projectId)
+                ->where('project_member_id', $projectMemberId)
+                ->where('del_flg', false)
+                ->first();
+
+            if (!$member) {
+                throw new \Exception('対象メンバーが見つかりません');
+            }
+
+            $internalIds[] = $member->id;
+        }
+
+        return $internalIds;
+    }
+
+    /**
      * タスクデータをフォーマット
      */
     private function formatTaskData(ProjectTask $task): array
@@ -367,19 +417,19 @@ class ProjectTaskService extends BaseService
         // 対象メンバーの名前とIDを取得
         $targetMembers = $task->taskMembers->map(function ($taskMember) {
             $member = $taskMember->projectMember;
-            if (!$member) return null;
+            if (!$member || $member->del_flg) return null;
             
             $memberName = $this->getMemberName($member);
             
             return [
-                'id' => $member->id,
+                'project_member_id' => $member->project_member_id,
                 'name' => $memberName
             ];
         })->filter()->toArray();
         
         $taskArray = $task->toArray();
         $taskArray['target_members'] = array_column($targetMembers, 'name');
-        $taskArray['target_member_ids'] = array_column($targetMembers, 'id');
+        $taskArray['target_member_ids'] = array_column($targetMembers, 'project_member_id');
         
         // 金額を整数として返す（小数点を切り捨て）
         if (isset($taskArray['accounting_amount'])) {

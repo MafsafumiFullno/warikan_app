@@ -46,4 +46,9 @@ class Project extends Model
     {
         return $this->hasMany(ProjectMember::class, 'project_id');
     }
+
+    public function shareLink()
+    {
+        return $this->hasOne(ProjectShareLink::class, 'project_id');
+    }
 }

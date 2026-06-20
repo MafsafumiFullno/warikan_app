@@ -6,6 +6,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectTaskController;
 use App\Http\Controllers\ProjectMemberController;
+use App\Http\Controllers\ProjectShareLinkController;
 use App\Http\Controllers\SplitCalculationController;
 
 Route::get('/user', function (Request $request) {
@@ -19,6 +20,11 @@ Route::get('/example', function () {
 // CSRFトークン取得用エンドポイント
 Route::get('/csrf-token', function () {
     return response()->json(['csrf_token' => csrf_token()]);
+});
+
+// 共有リンク公開エンドポイント（認証不要・レート制限あり）
+Route::middleware('throttle:30,1')->group(function () {
+    Route::get('/share/{token}', [ProjectShareLinkController::class, 'showByToken']);
 });
 
 // 認証関連のルート
@@ -56,6 +62,9 @@ Route::middleware(['auth:sanctum', 'auth.customer'])->prefix('projects')->group(
     Route::put('/{projectId}/members/{memberId}/split-weight', [ProjectMemberController::class, 'updateWeight']);
     Route::put('/{projectId}/members/{memberId}/memo', [ProjectMemberController::class, 'updateMemo']);
     Route::delete('/{projectId}/members/{memberId}', [ProjectMemberController::class, 'destroy']);
+
+    // 共有リンク
+    Route::post('/{projectId}/share-link', [ProjectShareLinkController::class, 'store']);
     
     // 割り勘計算
     Route::post('/{projectId}/split-calculation', [SplitCalculationController::class, 'calculate']);
