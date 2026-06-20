@@ -21,7 +21,8 @@ interface Accounting {
   project_task_code: number;
   task_name: string;
   task_member_name: string;
-  customer_id: number;
+  member_id?: number | null;
+  customer_id?: number;
   accounting_amount: number;
   accounting_type: string;
   breakdown?: string;
@@ -35,6 +36,7 @@ interface Accounting {
 }
 
 interface Member {
+  id: number;
   project_member_id: number;
   customer_id: number;
   role: string;
@@ -46,14 +48,6 @@ interface Member {
   is_guest: boolean;
   joined_at: string;
   total_expense: number;
-}
-
-interface ShareLink {
-  project_id: number;
-  token: string;
-  share_url: string;
-  permission: string;
-  created_at: string;
 }
 
 export default function ProjectDetail() {
@@ -69,9 +63,6 @@ export default function ProjectDetail() {
   const [showAccountingModal, setShowAccountingModal] = useState(false);
   const [showEditAccountingModal, setShowEditAccountingModal] = useState(false);
   const [selectedAccounting, setSelectedAccounting] = useState<Accounting | null>(null);
-  const [shareLink, setShareLink] = useState<ShareLink | null>(null);
-  const [shareLinkLoading, setShareLinkLoading] = useState(false);
-  const [shareLinkMessage, setShareLinkMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (id && typeof id === 'string') {
@@ -139,37 +130,6 @@ export default function ProjectDetail() {
 
   const handleMemberRemoved = (memberId: number) => {
     setMembers(prev => prev.filter(member => member.project_member_id !== memberId));
-  };
-
-  const createShareLink = async () => {
-    if (!project) return;
-
-    try {
-      setShareLinkLoading(true);
-      setShareLinkMessage(null);
-
-      const response = await apiFetch<{ share_link: ShareLink }>(`/api/projects/${project.project_id}/share-link`, {
-        method: 'POST',
-      });
-
-      setShareLink(response.share_link);
-      setShareLinkMessage('共有リンクを作成しました');
-    } catch (err: any) {
-      setShareLinkMessage(err.message || '共有リンクの作成に失敗しました');
-    } finally {
-      setShareLinkLoading(false);
-    }
-  };
-
-  const copyShareLink = async () => {
-    if (!shareLink?.share_url) return;
-
-    try {
-      await navigator.clipboard.writeText(shareLink.share_url);
-      setShareLinkMessage('共有リンクをコピーしました');
-    } catch (err: any) {
-      setShareLinkMessage(err.message || '共有リンクのコピーに失敗しました');
-    }
   };
 
   const getStatusLabel = (status: string) => {
@@ -414,31 +374,6 @@ export default function ProjectDetail() {
                 >
                   プロジェクトを編集
                 </button>
-                {members.some(member => member.customer_id === customer?.customer_id && member.role === 'owner') && (
-                  <>
-                    <button
-                      onClick={createShareLink}
-                      disabled={shareLinkLoading}
-                      className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-purple-300 text-white font-medium py-2 px-4 rounded-md transition-colors"
-                    >
-                      {shareLinkLoading ? '共有リンク作成中...' : '共有リンクを作成'}
-                    </button>
-                    {shareLink && (
-                      <div className="space-y-2">
-                        <p className="text-xs text-gray-600 break-all">{shareLink.share_url}</p>
-                        <button
-                          onClick={copyShareLink}
-                          className="w-full bg-purple-100 hover:bg-purple-200 text-purple-700 font-medium py-2 px-4 rounded-md transition-colors"
-                        >
-                          共有リンクをコピー
-                        </button>
-                      </div>
-                    )}
-                    {shareLinkMessage && (
-                      <p className="text-xs text-gray-600">{shareLinkMessage}</p>
-                    )}
-                  </>
-                )}
               </div>
             </div>
 

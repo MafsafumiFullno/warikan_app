@@ -7,7 +7,8 @@ interface Accounting {
   project_task_code: number;
   task_name: string;
   task_member_name: string;
-  customer_id: number;
+  member_id?: number | null;
+  customer_id?: number;
   accounting_amount: number;
   accounting_type: string;
   breakdown?: string;
@@ -20,6 +21,7 @@ interface Accounting {
 }
 
 interface Member {
+  id: number;
   project_member_id: number;
   customer_id: number;
   role: string;
@@ -47,7 +49,7 @@ export default function AccountingModal({ isOpen, onClose, projectId, members, o
     amount: '',
     description: '',
     accounting_type: 'expense',
-    member_name: '',
+    member_id: '' as number | '',
     target_member_ids: [] as number[],
   });
   const [loading, setLoading] = useState(false);
@@ -56,19 +58,19 @@ export default function AccountingModal({ isOpen, onClose, projectId, members, o
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    
+
     // 金額フィールドの場合は小数点を除去（整数のみ許可）
     let processedValue = value;
     if (name === 'amount') {
       // 小数点とマイナス符号を除去
       processedValue = value.replace(/[^\d]/g, '');
     }
-    
+
     setFormData(prev => ({
       ...prev,
       [name]: processedValue
     }));
-    
+
     // バリデーションエラーをクリア
     if (validationErrors[name]) {
       setValidationErrors(prev => ({
@@ -88,11 +90,11 @@ export default function AccountingModal({ isOpen, onClose, projectId, members, o
   const handleTargetMemberChange = (memberId: number, checked: boolean) => {
     setFormData(prev => ({
       ...prev,
-      target_member_ids: checked 
+      target_member_ids: checked
         ? [...prev.target_member_ids, memberId]
         : prev.target_member_ids.filter(id => id !== memberId)
     }));
-    
+
     // バリデーションエラーをクリア
     if (validationErrors.target_member_ids) {
       setValidationErrors(prev => ({
@@ -120,8 +122,8 @@ export default function AccountingModal({ isOpen, onClose, projectId, members, o
       }
     }
 
-    if (!formData.member_name.trim()) {
-      errors.member_name = 'メンバー名は必須です';
+    if (!formData.member_id) {
+      errors.member_id = 'メンバー名は必須です';
     }
 
     if (formData.target_member_ids.length === 0) {
@@ -134,7 +136,7 @@ export default function AccountingModal({ isOpen, onClose, projectId, members, o
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -148,7 +150,7 @@ export default function AccountingModal({ isOpen, onClose, projectId, members, o
         amount: parseInt(formData.amount, 10),
         description: formData.description.trim() || undefined,
         accounting_type: formData.accounting_type,
-        member_name: formData.member_name.trim(),
+        member_id: Number(formData.member_id),
         target_member_ids: formData.target_member_ids,
       };
 
@@ -158,17 +160,17 @@ export default function AccountingModal({ isOpen, onClose, projectId, members, o
       });
 
       onAccountingAdded(data.accounting);
-      
+
       // フォームをリセット
       setFormData({
         accounting_name: '',
         amount: '',
         description: '',
         accounting_type: 'expense',
-        member_name: '',
+        member_id: '' as number | '',
         target_member_ids: [],
       });
-      
+
       onClose();
     } catch (err: any) {
       setError(err.message || '会計の追加に失敗しました');
@@ -184,7 +186,7 @@ export default function AccountingModal({ isOpen, onClose, projectId, members, o
       amount: '',
       description: '',
       accounting_type: 'expense',
-      member_name: '',
+      member_id: '' as number | '',
       target_member_ids: [],
     });
     setValidationErrors({});
@@ -217,28 +219,28 @@ export default function AccountingModal({ isOpen, onClose, projectId, members, o
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="member_name" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="member_id" className="block text-sm font-medium text-gray-700 mb-1">
                 メンバー名 <span className="text-red-500">*</span>
               </label>
               <select
-                id="member_name"
-                name="member_name"
-                value={formData.member_name}
+                id="member_id"
+                name="member_id"
+                value={formData.member_id}
                 onChange={handleInputChange}
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  validationErrors.member_name ? 'border-red-500' : 'border-gray-300'
+                  validationErrors.member_id ? 'border-red-500' : 'border-gray-300'
                 }`}
                 required
               >
                 <option value="">メンバーを選択してください</option>
                 {members.map((member) => (
-                  <option key={member.project_member_id} value={member.name}>
+                  <option key={member.id} value={member.id}>
                     {member.name} {member.is_guest ? '(ゲスト)' : ''}
                   </option>
                 ))}
               </select>
-              {validationErrors.member_name && (
-                <p className="mt-1 text-sm text-red-600">{validationErrors.member_name}</p>
+              {validationErrors.member_id && (
+                <p className="mt-1 text-sm text-red-600">{validationErrors.member_id}</p>
               )}
             </div>
 
@@ -254,8 +256,8 @@ export default function AccountingModal({ isOpen, onClose, projectId, members, o
                     <label key={member.project_member_id} className="flex items-center space-x-2">
                       <input
                         type="checkbox"
-                        checked={formData.target_member_ids.includes(member.project_member_id)}
-                        onChange={(e) => handleTargetMemberChange(member.project_member_id, e.target.checked)}
+                        checked={formData.target_member_ids.includes(member.id)}
+                        onChange={(e) => handleTargetMemberChange(member.id, e.target.checked)}
                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
                       <span className="text-sm text-gray-700">

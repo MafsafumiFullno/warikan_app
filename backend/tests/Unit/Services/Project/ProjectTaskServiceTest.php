@@ -232,6 +232,47 @@ class ProjectTaskServiceTest extends TestCase
     }
 
     /**
+     * 削除されたプロジェクトメンバーが対象メンバー履歴から除外されること
+     */
+    public function test_getProjectTasks_excludes_deleted_project_members_from_target_members(): void
+    {
+        $customer = $this->createCustomer();
+        $project = $this->createProject($customer->customer_id);
+
+        $member1 = $this->createProjectMember($project->project_id, [
+            'project_member_id' => 1,
+            'member_name' => 'メンバー1',
+        ]);
+
+        $member2 = $this->createProjectMember($project->project_id, [
+            'project_member_id' => 2,
+            'member_name' => 'メンバー2',
+            'del_flg' => true,
+        ]);
+
+        $task = $this->createProjectTask($project->project_id);
+
+        ProjectTaskMember::create([
+            'task_id' => $task->task_id,
+            'member_id' => $member1->id,
+            'del_flg' => false,
+        ]);
+
+        ProjectTaskMember::create([
+            'task_id' => $task->task_id,
+            'member_id' => $member2->id,
+            'del_flg' => false,
+        ]);
+
+        $result = $this->projectTaskService->getProjectTasks($customer->customer_id, $project->project_id);
+
+        $this->assertCount(1, $result['accountings']);
+        $accounting = $result['accountings'][0];
+        $this->assertSame(['メンバー1'], array_values($accounting['target_members']));
+        $this->assertSame([$member1->id], array_values($accounting['target_member_ids']));
+    }
+
+    /**
      * プロジェクトが存在しない場合にエラーが発生すること
      */
     public function test_getProjectTasks_fails_when_project_not_found(): void
@@ -399,6 +440,35 @@ class ProjectTaskServiceTest extends TestCase
 
         $task = ProjectTask::where('task_id', $result['accounting']['task_id'])->first();
         $this->assertEquals($member->id, $task->member_id);
+    }
+
+    /**
+     * 同名メンバーでもmember_idで支払人を設定できること
+     */
+    public function test_createProjectTask_uses_member_id_for_payer_reference(): void
+    {
+        $customer = $this->createCustomer();
+        $project = $this->createProject($customer->customer_id);
+
+        $this->createProjectMember($project->project_id, [
+            'project_member_id' => 1,
+            'member_name' => '同名メンバー',
+        ]);
+
+        $payer = $this->createProjectMember($project->project_id, [
+            'project_member_id' => 2,
+            'member_name' => '同名メンバー',
+        ]);
+
+        $result = $this->projectTaskService->createProjectTask($customer->customer_id, $project->project_id, [
+            'accounting_name' => '新規会計',
+            'amount' => 5000,
+            'member_id' => $payer->id,
+        ]);
+
+        $task = ProjectTask::where('task_id', $result['accounting']['task_id'])->first();
+        $this->assertEquals($payer->id, $task->member_id);
+        $this->assertEquals('同名メンバー', $task->task_member_name);
     }
 
     /**
@@ -892,6 +962,40 @@ class ProjectTaskServiceTest extends TestCase
         $this->assertEquals('更新された説明', $result['accounting']['breakdown']);
         $this->assertEquals('income', $result['accounting']['accounting_type']);
         $this->assertEquals('更新されたメンバー', $result['accounting']['task_member_name']);
+    }
+
+    /**
+     * 会計更新時にmember_idで支払人参照を更新できること
+     */
+    public function test_updateProjectTask_updates_payer_member_id(): void
+    {
+        $customer = $this->createCustomer();
+        $project = $this->createProject($customer->customer_id);
+
+        $originalPayer = $this->createProjectMember($project->project_id, [
+            'project_member_id' => 1,
+            'member_name' => '支払人',
+        ]);
+
+        $newPayer = $this->createProjectMember($project->project_id, [
+            'project_member_id' => 2,
+            'member_name' => '支払人',
+        ]);
+
+        $task = $this->createProjectTask($project->project_id, [
+            'member_id' => $originalPayer->id,
+            'task_member_name' => '支払人',
+        ]);
+
+        $result = $this->projectTaskService->updateProjectTask($customer->customer_id, $project->project_id, $task->task_id, [
+            'accounting_name' => '更新された会計',
+            'amount' => 5000,
+            'member_id' => $newPayer->id,
+        ]);
+
+        $task->refresh();
+        $this->assertEquals($newPayer->id, $task->member_id);
+        $this->assertEquals($newPayer->id, $result['accounting']['member_id']);
     }
 
     /**
