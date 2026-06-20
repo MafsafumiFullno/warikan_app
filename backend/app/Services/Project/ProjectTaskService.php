@@ -113,24 +113,17 @@ class ProjectTaskService extends BaseService
         // オーナー権限チェック
         $project = $this->validateOwnerAccess($customerId, $projectId);
 
-        if (isset($validated['target_member_ids'])) {
-            $validated['target_member_ids'] = $this->resolveTargetMemberIdsToInternalIds(
-                $projectId,
-                $validated['target_member_ids']
-            );
-        }
-
         // プロジェクトタスクを取得
         $projectTask = $this->getProjectTask($projectId, $taskId);
 
         return $this->executeInTransaction(function () use ($project, $projectTask, $validated, $taskId, $customerId) {
-            // 支払人情報を取得
-            $payerInfo = $this->resolvePayerInfo($project, $validated, $customerId);
+            $payerInfo = $this->getPayerInfo($project, $validated['member_name'], $customerId);
 
             // プロジェクトタスクを更新
             $projectTask->update([
                 'task_name' => $validated['accounting_name'],
-                'task_member_name' => $payerInfo['member_name'],
+                'task_member_name' => $validated['member_name'],
+                'member_id' => $payerInfo['member_id'],
                 'accounting_amount' => $validated['amount'],
                 'accounting_type' => $validated['accounting_type'] ?? 'expense',
                 'breakdown' => $validated['description'] ?? null,
@@ -212,22 +205,25 @@ class ProjectTaskService extends BaseService
      */
     private function getPayerInfoByName(Project $project, string $memberName): array
     {
-        // 支払人（task_member_name）のプロジェクトメンバーIDを取得
         $payerMember = ProjectMember::where('project_id', $project->project_id)
-            ->where('member_name', $memberName)
             ->where('del_flg', false)
-            ->first();
+            ->with(['customer', 'role'])
+            ->get()
+            ->first(function (ProjectMember $member) use ($memberName) {
+                return $this->getMemberName($member) === $memberName;
+            });
 
         if ($payerMember) {
             return [
                 'member_id' => $payerMember->id,
-                'member_name' => $this->getMemberName($payerMember),
+                'customer_id' => $payerMember->customer_id
             ];
         }
 
         return [
+            'type' => 'guest',
             'member_id' => null,
-            'member_name' => $memberName,
+            'customer_id' => $customerId
         ];
     }
 

@@ -18,15 +18,14 @@ class AdvancedSplitServiceTest extends TestCase
     // ===== calculateMemberPaymentsメソッドのテスト =====
 
     /**
-     * 比重とオーナーの仮想IDを考慮したメンバー支払い計算
-     * オーナーの仮想member_id(-1)が正しく処理されることを確認
+     * 比重と project_members 上のオーナーIDを考慮したメンバー支払い計算
      */
-    public function test_calculate_member_payments_with_weights_and_owner_virtual_id(): void
+    public function test_calculate_member_payments_with_weights_and_owner_member_id(): void
     {
         $service = new AdvancedSplitService();
 
         $allMembers = [
-            ['member_id' => -1, 'customer_id' => 10, 'member_name' => 'オーナー', 'split_weight' => 1.0, 'is_owner' => true],
+            ['member_id' => 100, 'customer_id' => 10, 'member_name' => 'オーナー', 'split_weight' => 1.0, 'is_owner' => true],
             ['member_id' => 101, 'customer_id' => 101, 'member_name' => 'A', 'split_weight' => 1.0, 'is_owner' => false],
             ['member_id' => 102, 'customer_id' => 102, 'member_name' => 'B', 'split_weight' => 2.0, 'is_owner' => false],
         ];
@@ -48,7 +47,7 @@ class AdvancedSplitServiceTest extends TestCase
                 'task_name' => '割引',
                 'accounting_amount' => 1000,
                 'accounting_type' => 'income',
-                'payer_member_id' => null,
+                'payer_member_id' => 100,
                 'target_members' => [
                     ['member_id' => 101, 'customer_id' => 101, 'member_name' => 'A'],
                     ['member_id' => 102, 'customer_id' => 102, 'member_name' => 'B'],
@@ -65,8 +64,8 @@ class AdvancedSplitServiceTest extends TestCase
 
         $this->assertSame(3000, $byId[101]['total_paid']);
         $this->assertSame(667, $byId[101]['total_share']);
-        $this->assertSame(0, $byId[-1]['total_share']);
-        $this->assertSame(-1000, $byId[-1]['total_paid']);
+        $this->assertSame(0, $byId[100]['total_share']);
+        $this->assertSame(-1000, $byId[100]['total_paid']);
         $this->assertSame(1333, $byId[102]['total_share']);
     }
 
@@ -80,13 +79,13 @@ class AdvancedSplitServiceTest extends TestCase
         $service = new AdvancedSplitService();
 
         $allMembers = [
-            ['member_id' => -1, 'customer_id' => 10, 'member_name' => 'オーナー', 'split_weight' => 1.0, 'is_owner' => true],
+            ['member_id' => 100, 'customer_id' => 10, 'member_name' => 'オーナー', 'split_weight' => 1.0, 'is_owner' => true],
             ['member_id' => 101, 'customer_id' => 101, 'member_name' => 'A', 'split_weight' => 1.0, 'is_owner' => false],
             ['member_id' => 102, 'customer_id' => 102, 'member_name' => 'B', 'split_weight' => 2.0, 'is_owner' => false],
         ];
 
         $memberPayments = [
-            ['member_id' => -1, 'customer_id' => 10, 'member_name' => 'オーナー', 'total_paid' => -1000, 'total_share' => 0, 'split_weight' => 1.0],
+            ['member_id' => 100, 'customer_id' => 10, 'member_name' => 'オーナー', 'total_paid' => -1000, 'total_share' => 0, 'split_weight' => 1.0],
             ['member_id' => 101, 'customer_id' => 101, 'member_name' => 'A', 'total_paid' => 3000, 'total_share' => 667, 'split_weight' => 1.0],
             ['member_id' => 102, 'customer_id' => 102, 'member_name' => 'B', 'total_paid' => 0, 'total_share' => 1333, 'split_weight' => 2.0],
         ];
