@@ -66,3 +66,35 @@ jobs:
       - name: Build
         run: npm run build
 
+  frontend-e2e:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Playwright browsers (Linux)
+        if: runner.os == 'Linux'
+        run: npx playwright install --with-deps chromium
+      - name: Install Playwright browsers (macOS)
+        if: runner.os == 'macOS'
+        run: npx playwright install chromium
+      - name: Run E2E
+        run: npm run e2e
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ runner.os }}
+          path: frontend/playwright-report/
+          retention-days: 14

@@ -273,7 +273,6 @@ class ProjectMemberService extends BaseService
         $memberName = $this->getMemberName($member);
 
         return [
-            'id' => $member->id,
             'project_member_id' => $member->project_member_id,
             'customer_id' => $member->customer_id,
             'role' => $member->role->role_code,
