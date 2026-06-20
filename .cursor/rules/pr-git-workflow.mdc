@@ -1,0 +1,15 @@
+---
+description: PR作成までのGit操作とテンプレート運用
+alwaysApply: true
+---
+
+# PR / Git Workflow
+
+- コミット・push・PR作成は、ユーザーが明示したときのみ行う。
+- `main` / `master` への直接コミットや直接pushはしない。
+- ステージ/コミット前に `scripts/commit-assets-check.sh` を使い、依頼者へコミット対象資産と各資産を含める根拠を提示し、承認を得る。
+- PR前の確認は `scripts/pr-ready-check.sh` を優先して使う。
+- push/PR作成前に、依頼者へ反映資産（push対象のコミット・ファイル）とPR内容（タイトル、概要、変更点、テスト、レビュー観点、特記事項）を提示し、承認を得る。
+- PR作成は `APPROVED_ASSETS=1 APPROVED_PR=1 scripts/create-pr.sh "PR title"` を優先して使う。未コミット差分がある場合は、先にコミットする。
+- PR本文は `.github/pull_request_template.md` に沿って、概要・変更点・レビュー時に確認してほしい点・テスト・特記事項/懸念点・関連Issueを埋める。
+- 既存の未追跡ファイルやユーザー作業ファイルは、依頼範囲外ならステージしない。
