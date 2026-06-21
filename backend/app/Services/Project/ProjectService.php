@@ -14,6 +14,10 @@ class ProjectService extends BaseService
 
     /**
      * プロジェクト一覧を取得
+     * 
+     * @param int $customerId
+     * @param array $filters
+     * @return array
      */
     public function getProjectsForCustomer($customerId, array $filters = []): array
     {
@@ -55,6 +59,10 @@ class ProjectService extends BaseService
 
     /**
      * プロジェクトを作成
+     * 
+     * @param int $customerId
+     * @param array $data
+     * @return array
      */
     public function createProject($customerId, array $data): array
     {
@@ -98,6 +106,10 @@ class ProjectService extends BaseService
 
     /**
      * プロジェクトを取得（アクセス権限チェック付き）
+     * 
+     * @param int $customerId
+     * @param int $projectId
+     * @return array
      */
     public function getProjectWithAccessCheck($customerId, int $projectId): array
     {
@@ -118,18 +130,15 @@ class ProjectService extends BaseService
 
     /**
      * プロジェクトを更新
+     * 
+     * @param int $customerId
+     * @param int $projectId
+     * @param array $data
+     * @return array
      */
     public function updateProject($customerId, int $projectId, array $data): array
     {
-        // プロジェクトの存在確認とオーナー権限チェック
-        $project = Project::where('project_id', $projectId)
-            ->where('customer_id', $customerId)
-            ->where('del_flg', false)
-            ->first();
-
-        if (!$project) {
-            throw new \Exception('プロジェクトが見つかりません。');
-        }
+        $project = $this->validateOwnerAccess($customerId, $projectId);
 
         // バリデーション
         $validated = $this->validateData($data, [
@@ -153,17 +162,14 @@ class ProjectService extends BaseService
 
     /**
      * プロジェクトを論理削除
+     * 
+     * @param int $customerId
+     * @param int $projectId
+     * @return array
      */
     public function deleteProject($customerId, int $projectId): array
     {
-        $project = Project::where('project_id', $projectId)
-            ->where('customer_id', $customerId)
-            ->where('del_flg', false)
-            ->first();
-
-        if (!$project) {
-            throw new \Exception('プロジェクトが見つかりません。');
-        }
+        $project = $this->validateOwnerAccess($customerId, $projectId);
 
         $this->softDelete($project);
 
@@ -172,6 +178,10 @@ class ProjectService extends BaseService
 
     /**
      * 割り勘方法の存在確認
+     * 
+     * @param int $customerId
+     * @param int $splitMethodId
+     * @return void
      */
     private function validateSplitMethod($customerId, int $splitMethodId): void
     {
@@ -186,6 +196,9 @@ class ProjectService extends BaseService
 
     /**
      * プロジェクト作成者をオーナーとしてメンバーに追加
+     * 
+     * @param Project $project
+     * @return void
      */
     private function addOwnerAsMember(Project $project): void
     {
