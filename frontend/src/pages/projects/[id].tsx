@@ -15,6 +15,11 @@ interface Project {
   updated_at: string;
 }
 
+interface ProjectAccess {
+  isOwner: boolean;
+  isMember: boolean;
+}
+
 interface Accounting {
   task_id: number;
   project_id: number;
@@ -56,6 +61,7 @@ export default function ProjectDetail() {
   const { id } = router.query;
   
   const [project, setProject] = useState<Project | null>(null);
+  const [projectAccess, setProjectAccess] = useState<ProjectAccess>({ isOwner: false, isMember: false });
   const [accountings, setAccountings] = useState<Accounting[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,8 +83,12 @@ export default function ProjectDetail() {
       setLoading(true);
       setError(null);
       
-      const response = await apiFetch<{ project: Project }>(`/api/projects/${projectId}`);
+      const response = await apiFetch<{ project: Project; isOwner: boolean; isMember: boolean }>(`/api/projects/${projectId}`);
       setProject(response.project);
+      setProjectAccess({
+        isOwner: response.isOwner,
+        isMember: response.isMember,
+      });
       
     } catch (err: any) {
       console.error('プロジェクト詳細取得エラー:', err);
@@ -120,6 +130,8 @@ export default function ProjectDetail() {
   };
 
   const handleAccountingClick = (accounting: Accounting) => {
+    if (!projectAccess.isOwner) return;
+
     setSelectedAccounting(accounting);
     setShowEditAccountingModal(true);
   };
@@ -258,7 +270,7 @@ export default function ProjectDetail() {
               <MembersList
                 projectId={project.project_id}
                 currentUserId={customer?.customer_id || 0}
-                isOwner={members.some(member => member.customer_id === customer?.customer_id && member.role === 'owner')}
+                isOwner={projectAccess.isOwner}
                 onMemberAdded={handleMemberAdded}
                 onMemberRemoved={handleMemberRemoved}
               />
@@ -356,24 +368,28 @@ export default function ProjectDetail() {
                 <h3 className="text-lg font-medium text-gray-900">アクション</h3>
               </div>
               <div className="px-6 py-4 space-y-3">
-                <button
-                  onClick={() => setShowAccountingModal(true)}
-                  className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
-                >
-                  会計を追加
-                </button>
+                {projectAccess.isOwner && (
+                  <button
+                    onClick={() => setShowAccountingModal(true)}
+                    className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
+                  >
+                    会計を追加
+                  </button>
+                )}
                 <button
                   onClick={() => router.push(`/split-result?projectId=${project.project_id}`)}
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
                 >
                   割り勘計算を開始
                 </button>
-                <button
-                  onClick={() => router.push(`/projects/${project.project_id}/edit`)}
-                  className="w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
-                >
-                  プロジェクトを編集
-                </button>
+                {projectAccess.isOwner && (
+                  <button
+                    onClick={() => router.push(`/projects/${project.project_id}/edit`)}
+                    className="w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
+                  >
+                    プロジェクトを編集
+                  </button>
+                )}
               </div>
             </div>
 

@@ -807,7 +807,7 @@ class ProjectServiceTest extends TestCase
         $customer = $this->createCustomer();
 
         $this->expectException(\Exception::class);
-        $this->expectExceptionMessage('プロジェクトが見つかりません。');
+        $this->expectExceptionMessage('プロジェクトが見つかりません');
 
         $this->projectService->updateProject($customer->customer_id, 999, [
             'project_name' => 'テストプロジェクト',
@@ -825,7 +825,7 @@ class ProjectServiceTest extends TestCase
         $project = $this->createProject($owner->customer_id);
 
         $this->expectException(\Exception::class);
-        $this->expectExceptionMessage('プロジェクトが見つかりません。');
+        $this->expectExceptionMessage('オーナー権限がありません');
 
         $this->projectService->updateProject($otherCustomer->customer_id, $project->project_id, [
             'project_name' => 'テストプロジェクト',
@@ -1051,7 +1051,7 @@ class ProjectServiceTest extends TestCase
         $customer = $this->createCustomer();
 
         $this->expectException(\Exception::class);
-        $this->expectExceptionMessage('プロジェクトが見つかりません。');
+        $this->expectExceptionMessage('プロジェクトが見つかりません');
 
         $this->projectService->deleteProject($customer->customer_id, 999);
     }
@@ -1067,7 +1067,7 @@ class ProjectServiceTest extends TestCase
         $project = $this->createProject($owner->customer_id);
 
         $this->expectException(\Exception::class);
-        $this->expectExceptionMessage('プロジェクトが見つかりません。');
+        $this->expectExceptionMessage('オーナー権限がありません');
 
         $this->projectService->deleteProject($otherCustomer->customer_id, $project->project_id);
     }
@@ -1083,7 +1083,7 @@ class ProjectServiceTest extends TestCase
         ]);
 
         $this->expectException(\Exception::class);
-        $this->expectExceptionMessage('プロジェクトが見つかりません。');
+        $this->expectExceptionMessage('プロジェクトが見つかりません');
 
         $this->projectService->deleteProject($customer->customer_id, $project->project_id);
     }
