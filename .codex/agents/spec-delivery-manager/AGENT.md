@@ -6,6 +6,7 @@
 
 ## 共通知識の参照
 
+- 体制や責務分離の前提は `docs/ai-driven/harness-engineering.md` に従う
 - 開始時に `docs/domain/warikan/common-invariants.md` を読む
 - `project_member_id` の意味と `del_flg` の扱いはこのドキュメントを正本とする
 
@@ -70,6 +71,7 @@
 
 ## 業務管理ルール
 
+- このAgentは新機能やAPI変更の納品フローを管理する。反復改善全体の入口は `loop-engineering-manager` に任せる
 - 子 Skill を読まずに Phase 開始しない
 - コミット・push はユーザー明示時のみ
 - ドメイン不変条件は `docs/domain/warikan/common-invariants.md` に従う

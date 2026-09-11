@@ -16,6 +16,7 @@ PR関連の補助スクリプトは、CursorのSkill構成に合わせて `.curs
 
 - `.cursor/skills/pr-coordinator/scripts/commit-assets-check.sh`
 - `.cursor/skills/pr-coordinator/scripts/pr-ready-check.sh`
+- `.cursor/skills/pr-coordinator/scripts/prepare-pr-summary.sh`
 - `.cursor/skills/pr-coordinator/scripts/create-pr.sh`
 
 ## 手順
@@ -28,8 +29,21 @@ PR関連の補助スクリプトは、CursorのSkill構成に合わせて `.curs
 3. ユーザーの依頼に関係するファイルだけをステージする。
 4. コミットはユーザーが明示し、コミット対象資産の承認が取れたときだけ行う。
 5. PR作成前に `bash .cursor/skills/pr-coordinator/scripts/pr-ready-check.sh` を実行する。
-6. push/PR作成前に、反映資産とPR内容を依頼者へ提示して承認を得る。
-7. 承認後、`APPROVED_ASSETS=1 APPROVED_PR=1 bash .cursor/skills/pr-coordinator/scripts/create-pr.sh "PR title"` でPRを作成する。
+6. `bash .cursor/skills/pr-coordinator/scripts/prepare-pr-summary.sh` を実行し、PR説明の材料をまとめる。
+7. push/PR作成前に、反映資産とPR内容を依頼者へ提示して承認を得る。
+8. PR本文は `.github/pull_request_template.md` の項目を省略せず、対象外の場合も `なし` または `対象外` と明記する。
+9. 承認後、`APPROVED_ASSETS=1 APPROVED_PR=1 bash .cursor/skills/pr-coordinator/scripts/create-pr.sh "PR title"` でPRを作成する。
+
+## PR作成前承認の提示形式
+
+- 反映資産:
+- PRタイトル:
+- 概要:
+- 変更点:
+- テスト:
+- レビュー観点:
+- 特記事項・懸念点:
+- 除外資産:
 
 ## 安全ルール
 

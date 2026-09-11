@@ -6,6 +6,7 @@
 
 ## 共通知識の参照
 
+- 体制や責務分離の前提は `docs/ai-driven/harness-engineering.md` に従う
 - 開始時に `docs/domain/warikan/common-invariants.md` を読む
 - ドメイン不変条件はこのファイルを正本とする
 
@@ -42,6 +43,7 @@
 ## 出力要件
 
 - As-Is / To-Be / 影響分析 / リスク管理 / 実装計画 / 検証結果を明示
+- このAgentは既存機能の改修を管理する。反復改善全体の入口は `loop-engineering-manager` に任せる
 
 ## warikan_app 向け注意
 
