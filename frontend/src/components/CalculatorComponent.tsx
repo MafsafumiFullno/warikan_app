@@ -13,7 +13,6 @@ export default function CalculatorComponent() {
 
   const handleEqual = () => {
     try {
-      // eslint-disable-next-line no-eval
       const result = eval(input);
       setInput(String(result));
     } catch {
