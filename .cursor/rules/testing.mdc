@@ -22,17 +22,6 @@ alwaysApply: false
 
 - Service の戻り値と **DB の実データ** の両方を確認する（重要な更新系）
 
-```php
-$result = $this->projectMemberService->updateMemberWeight(..., $memberId, ['split_weight' => 2.5]);
-$this->assertEquals(2.5, $result['split_weight']);
-
-$updated = ProjectMember::where('project_id', $project->project_id)
-    ->where('project_member_id', $memberId)
-    ->first();
-$this->assertNotNull($updated);
-$this->assertEquals(2.5, $updated->split_weight);
-```
-
 ## メンバー ID（テスト）
 
 - `$memberId` は **`project_member_id`** を代入する
@@ -41,3 +30,5 @@ $this->assertEquals(2.5, $updated->split_weight);
 ## 新機能時
 
 - 正常系・権限エラー・存在しない ID・論理削除済み、境界値を最低限カバーする
+- DB変更時は migrate 結果、既存データ影響、ロールバック可否を確認する
+- API変更時は backend / frontend / tests の契約同期を確認する

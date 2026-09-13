@@ -1,0 +1,15 @@
+---
+description: AI駆動開発ハーネスの責務分離
+alwaysApply: true
+---
+
+# AI駆動開発ハーネス
+
+- Rules は短い規約に限定し、長い手順は Docs / Agents / Skills に分離する
+- Agents は業務進行、Skill選択、承認ゲートを管理する
+- Skills は各工程の実行手順、チェックリスト、出力テンプレートを持つ
+- Docs は正本情報を持つ。ドメイン不変条件は `docs/domain/warikan/common-invariants.md`
+- ループ運用の正本は `docs/ai-driven/loop-engineering.md`
+- ハーネス構造の正本は `docs/ai-driven/harness-engineering.md`
+- Cursor版とCodex版のAgent/Skillは、ツール固有パス以外の意味を揃える
+- アプリ機能修正と体制整備は、原則として別ブランチに分離する

@@ -8,6 +8,8 @@
 - TDD と仕様駆動開発を安定運用する
 - 改修時の回帰リスクを抑える
 - Cursor と Codex で同じ運用を再利用する
+- AI駆動開発を観測、仮説、最小変更、検証、学習のループとして回す
+- Rules / Agents / Skills / Docs / Scripts の責務を分離し、開発ハーネスを保守しやすくする
 - コミット・PR作成時の対象資産とレビュー観点を明確にする
 
 ## 前提
@@ -28,10 +30,13 @@ AI駆動開発の運用情報は、責務ごとに以下へ分離します。
 warikan_app/
 ├── .cursor/
 │   ├── rules/                           # 常時守る規約（短く最小）
+│   │   ├── ai-driven-harness.mdc
 │   ├── agents/                          # Agent定義（Skill管理・業務進行管理）
 │   │   ├── spec-delivery-manager/
-│   │   └── refactor-manager/
+│   │   ├── refactor-manager/
+│   │   └── loop-engineering-manager/
 │   └── skills/                          # Skill定義（実行能力 + ランチャー）
+│       ├── loop-engineering-lead/        # agents/loop-engineering-manager を起動
 │       ├── spec-delivery-lead/          # agents/spec-delivery-manager を起動
 │       ├── refactor-lead/               # agents/refactor-manager を起動
 │       ├── spec-architect/
@@ -43,8 +48,10 @@ warikan_app/
 ├── .codex/
 │   ├── agents/                          # Agent定義（Skill管理・業務進行管理）
 │   │   ├── spec-delivery-manager/
-│   │   └── refactor-manager/
+│   │   ├── refactor-manager/
+│   │   └── loop-engineering-manager/
 │   └── skills/                          # Skill定義（実行能力 + ランチャー）
+│       ├── loop-engineering-lead/
 │       ├── spec-delivery-lead/
 │       ├── refactor-lead/
 │       ├── spec-architect/
@@ -53,6 +60,9 @@ warikan_app/
 │       ├── qa-spec-guard/
 │       └── pr-coordinator/
 ├── docs/
+│   ├── ai-driven/
+│   │   ├── loop-engineering.md          # 反復改善ループの正本
+│   │   └── harness-engineering.md       # Rules/Agents/Skillsの責務分離の正本
 │   └── domain/
 │       └── warikan/
 │           └── common-invariants.md     # ドメイン不変条件の正本
@@ -65,6 +75,8 @@ warikan_app/
 
 - Rulesは「常時必要な最小規約」だけを置く
 - Agentは「Skill選択・承認ゲート・業務進行管理」、Skillは「各工程の実行能力」に分離する
+- `loop-engineering-manager` は既存の `spec-delivery-manager` / `refactor-manager` の上位で、反復改善の入口と学習記録を管理する
+- ハーネス構造の正本は `docs/ai-driven/harness-engineering.md` に置き、Rulesには要約だけ置く
 - `/spec-delivery-lead` などを明示呼び出しするため、skills側にランチャーを置く
 - Skillsは「手順・進め方」を置き、必要時に呼び出す
 - Cursor/Codexで同じ運用を維持するため、対応する Skill / Agent は同じ意味に揃える
@@ -74,24 +86,49 @@ warikan_app/
 
 ## Agent と Skill の役割分離
 
+### ハーネス構造
+
+- Rules: 常時守る短い規約
+- Agents: 業務進行、Skill選択、承認ゲート
+- Skills: 各工程の実行手順、チェックリスト、出力テンプレート
+- Docs: 正本情報、設計判断、運用背景
+- Scripts: 人間承認後に使う機械的チェックとPR補助
+
+詳細は `docs/ai-driven/harness-engineering.md` を参照します。
+
 ### Agent（業務管理層）
 
 - `spec-delivery-manager`: `spec-architect` / `tdd-implementer` / `api-contract-keeper` / `qa-spec-guard` を束ねる業務進行管理
 - `refactor-manager`: 改善・改修に必要なSkill選択と回帰確認の業務進行管理
-- Agent は状況に応じて必要な Skill を選択し、業務の進行状況を管理する
-- 承認ゲートを通過するまで次の Skill を呼び出さない
+- `loop-engineering-manager`: Observe / Frame / Act / Verify / Learn の反復、ゲート判定、AI Systems Engineer としてのハーネス改善を管理
+- Agent は Project Manager として、状況に応じて必要な Skill を選択し、工程、ブロッカー、承認待ち、役割間の受け渡しを管理する
+- ループでは低リスク作業を自動判定で進め、納品フローでは必要な承認ゲートを管理する
 
 ### Skill（実行能力層）
 
-- `spec-architect`: 仕様分解、受け入れ基準、要件確認（Assumptions / Unknowns / Open Questions）
-- `tdd-implementer`: Red-Green-Refactor で実装
+- `loop-engineering-lead`: 観測、仮説、最小変更、検証、学習のループを開始する入口
+- `spec-architect`: PDM / Domain Expert / System Architect / Spec Architect による価値、優先度、ドメイン不変条件、技術構造、受け入れ基準、要件確認（Assumptions / Unknowns / Open Questions）の整理
+- `tdd-implementer`: AI Implementation Lead / Infra / SRE / Security / Database / Backend / Frontend / UI/UX / Test の役割分担による Preflight, Red, Test Review, Green, Refactor, Regression で実装
 - `api-contract-keeper`: backend / frontend / tests の契約同期
-- `qa-spec-guard`: 仕様適合とテスト十分性の判定
+- `qa-spec-guard`: Spec / Contract / Data / Security / Regression Reviewer による仕様適合、契約同期、データ整合、セキュリティ、回帰リスクの判定
 - `pr-coordinator`: コミット対象資産、PR内容、push/PR作成承認の管理
 
 ## 推奨フロー
 
-### 1) 新機能開発
+### 1) ループエンジニアリング
+
+```text
+/loop-engineering-lead
+対象: [観測・改善したい対象]
+目的: [今回のループで明らかにしたいこと]
+モード: inspect | fix | workflow
+```
+
+`Observe -> Frame -> Act -> Verify -> Learn` の順に進めます。詳細は `docs/ai-driven/loop-engineering.md` を参照します。
+
+ループでは承認を最小化します。観測、整理、小さな整合修正、非破壊な検証は自動で進めます。外部設定や破壊的操作も、確認、dry-run、計画作成、下書き作成までは自動で進め、commit、push、PR作成、本番反映、履歴改変、実データ削除、プロダクト判断だけユーザー承認で止めます。
+
+### 2) 新機能開発
 
 ```text
 /spec-delivery-lead
@@ -101,7 +138,7 @@ warikan_app/
 
 進行中は Phase ごとに承認します（`OK` / `承認` / `進めてください`）。
 
-### 2) バグ修正
+### 3) バグ修正
 
 ```text
 /spec-delivery-lead
@@ -109,7 +146,7 @@ warikan_app/
 モード: bugfix
 ```
 
-### 3) API変更を含む改修
+### 4) API変更を含む改修
 
 ```text
 /spec-delivery-lead
@@ -117,7 +154,7 @@ warikan_app/
 モード: api-change
 ```
 
-### 4) 既存機能の改善・改修
+### 5) 既存機能の改善・改修
 
 ```text
 /refactor-lead
@@ -125,33 +162,48 @@ warikan_app/
 目的: [改善したい点]
 ```
 
-### 5) PR準備
+### 6) PR準備
 
 ```text
 /pr-coordinator
 目的: [PRにしたい変更]
 ```
 
-## 承認ゲート運用（重要）
+## ゲート運用（重要）
 
-`spec-delivery-lead` では各 Phase 完了後にユーザー承認を取ります。
+`loop-engineering-lead` では、次の4ゲートを確認します。
 
-- Phase 1: 要件漏れ・未確定要件（Unknowns）なしを確認
+- 不変条件ゲート: `project_member_id` / `del_flg` / `apiFetch` の規約違反がない
+- 契約ゲート: backend / frontend / tests で API の意味が同期している
+- テストゲート: 変更対象に対して必要な検証が実行または計画されている
+- 学習ゲート: 発見事項、判断待ち、次ループの材料が記録されている
+
+これらのゲートは、毎回ユーザー承認を取る場所ではなく、エージェントが自動で次へ進めるかを判断する基準です。
+
+`spec-delivery-lead` では、仕様や実装内容を人間が確認すべき Phase 完了後にユーザー承認を取ります。
+
+- Phase 1: PDM / Domain Expert / System Architect / Spec Architect の観点で、要件漏れ・未確定要件（Unknowns）なしを確認
 - Phase 2: 受け入れ基準に対応するテストが Green であることを確認
+- Phase 2では、変更範囲に応じて AI Implementation Lead / Infra / SRE / Security / Database / Backend / Frontend / UI/UX / Test の役割を割り当てる
+- Phase 2では、変更リスクに応じて Spec / Contract / Data / Security / Regression の観点でテストレビューしてから Green へ進む
 - Phase 3: API 契約の未反映リスクがないことを確認
-- Phase 4: 最終判定（Pass / Pass with Notes）を確認
+- Phase 4: `qa-spec-guard` で必要な Reviewer を割り当て、最終判定（Pass / Pass with Notes）を確認
 - 主要ユーザーフロー影響時は E2E（`cd frontend && npm run e2e`）実行結果を確認
 
-承認がなければ次工程に進みません。
+承認が必要な Phase では、承認がなければ次工程に進みません。
 
 ## PR / Git 運用
 
 - コミット・push・PR作成はユーザー明示時のみ行う
+- アプリ機能修正とAI駆動開発の体制整備は、原則として別ブランチに分離する
+- 体制整備は `chore/loop-engineering-*` 系ブランチを使う
+- 別件の不具合を見つけた場合は、その場で混ぜずに issue、stash、別ブランチへ分離する
 - コミット前に `bash .cursor/skills/pr-coordinator/scripts/commit-assets-check.sh` で対象資産を確認する
 - PR前に `bash .cursor/skills/pr-coordinator/scripts/pr-ready-check.sh` を実行し、差分とテスト結果を確認する
+- PR内容の提示前に `bash .cursor/skills/pr-coordinator/scripts/prepare-pr-summary.sh` を実行し、反映資産・コミット・差分・PR本文テンプレートを確認する
 - push/PR作成前に、反映資産とPR内容をユーザーへ提示して承認を得る
 - 承認後は `APPROVED_ASSETS=1 APPROVED_PR=1 bash .cursor/skills/pr-coordinator/scripts/create-pr.sh "PR title"` を使う
-- PR本文は `.github/pull_request_template.md` に沿って、概要・変更点・レビュー観点・テスト・特記事項を埋める
+- PR本文は `.github/pull_request_template.md` に沿って、概要、変更種別、変更点、仕様・契約、確認ゲート、テスト、レビュー観点、除外変更、特記事項、関連Issueを埋める
 
 ## 要件漏れを防ぐコツ
 
@@ -170,11 +222,19 @@ warikan_app/
 
 - コミット・push はユーザー明示時のみ
 - 依頼範囲外のリファクタはしない
+- 作業開始時に Observe と Frame を短く置く
+- 作業終了時に Verify と Learn を短く残す
 - 迷ったら `spec-architect` で設計を先に固める
 
 ## クイックリファレンス
 
 ```text
+# ループエンジニアリング
+/loop-engineering-lead
+対象: ...
+目的: ...
+モード: inspect | fix | workflow
+
 # 新機能
 /spec-delivery-lead
 要件: ...
@@ -194,4 +254,3 @@ warikan_app/
 /pr-coordinator
 目的: ...
 ```
-

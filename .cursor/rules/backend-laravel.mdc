@@ -8,38 +8,18 @@ alwaysApply: false
 
 ## レイヤー責務
 
-| 層 | 責務 |
-|----|------|
-| **Controller** | 認証ユーザー取得、`Service` 呼び出し、`JsonResponse` 返却、`handleException` |
-| **Service** | バリデーション、権限、ビジネスロジック、DB 操作、レスポンス整形 |
-| **Model** | Eloquent 定義・リレーションのみ（複雑なロジックは Service へ） |
-
+- Controller は認証ユーザー取得、`Service` 呼び出し、`JsonResponse` 返却、`handleException` に限定する
+- Service はバリデーション、権限、ビジネスロジック、DB操作、レスポンス整形を担当する
+- Model は Eloquent 定義とリレーションに留め、複雑なロジックは Service へ置く
 - プロジェクト系 Service は `App\Services\Project\*` に置き、`BaseService` を継承する
 - バリデーションは `$this->validateData($data, $rules)` を使う
 - 複数テーブル更新は `$this->beginTransaction()` / `commit` / `rollback` を検討する
-
-## Controller の型
-
-```php
-// ✅ 薄い Controller
-public function updateWeight(Request $request, int $projectId, int $memberId): JsonResponse
-{
-    try {
-        $customer = $request->user();
-        $result = $this->projectMemberService->updateMemberWeight(
-            $customer->customer_id, $projectId, $memberId, $request->all()
-        );
-        return response()->json($result);
-    } catch (\Exception $e) {
-        return $this->handleException($e, $request, $this->logger, '比重更新');
-    }
-}
-```
+- DB変更を伴う実装では、マイグレーションの既存データ影響とロールバック可否を確認する
 
 ## メンバー API の識別子
 
 - ルート `members/{memberId}` の `$memberId` は **`project_member_id`**
-- 取得例: `ProjectMember::where('project_member_id', $memberId)->where('project_id', $projectId)->where('del_flg', false)`
+- 詳細な不変条件は `docs/domain/warikan/common-invariants.md` を正本とする
 
 ## 権限
 
