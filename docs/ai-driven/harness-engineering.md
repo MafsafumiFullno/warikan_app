@@ -19,7 +19,7 @@ AI駆動開発を安定して回すための足場を整理する。ここでい
 業務進行、Skill選択、承認ゲートを管理する。
 
 - 置き場所: `.cursor/agents/`, `.codex/agents/`
-- 内容: 進行フロー、ゲート、Skill選択基準、完了条件
+- 内容: Project Manager 観点での進行フロー、ブロッカー、承認待ち、役割間の受け渡し、ゲート、Skill選択基準、完了条件
 - 書かないもの: 実装の細かい手順、長いコード例
 
 ### Skills
@@ -57,13 +57,13 @@ AI駆動開発を安定して回すための足場を整理する。ここでい
 
 | 対象 | 責務 | 入口 |
 |------|------|------|
-| ループ改善 | 観測、仮説、最小変更、検証、学習 | `loop-engineering-lead` |
+| ループ改善 | 観測、仮説、最小変更、検証、学習、AI Systems Engineer によるハーネス改善 | `loop-engineering-lead` |
 | 新機能/API変更 | 仕様設計からQA判定までの納品フロー | `spec-delivery-lead` |
 | 既存改修 | As-Is/To-Beを固定した段階改修 | `refactor-lead` |
-| 仕様設計 | 受け入れ基準、Unknowns、テスト計画 | `spec-architect` |
-| 実装 | Preflight, Red, Test Review, Green, Refactor, Regression | `tdd-implementer` |
+| 仕様設計 | PDM / Domain Expert / System Architect / Spec Architect による価値、優先度、ドメイン不変条件、技術構造、受け入れ基準、Unknowns、テスト計画 | `spec-architect` |
+| 実装 | AI Implementation Lead / Infra / SRE / Security / Database / Backend / Frontend / UI/UX / Test の役割分担による Preflight, Red, Test Review, Green, Refactor, Regression | `tdd-implementer` |
 | API契約 | backend / frontend / tests の同期 | `api-contract-keeper` |
-| QA判定 | 仕様適合、テスト十分性、回帰リスク | `qa-spec-guard` |
+| QA判定 | Spec / Contract / Data / Security / Regression Reviewer による仕様適合、契約同期、データ整合、セキュリティ、回帰リスク | `qa-spec-guard` |
 | PR/Git | 対象資産、PR内容、push/PR作成承認 | `pr-coordinator` |
 
 ## 重複を見つけた時の寄せ先

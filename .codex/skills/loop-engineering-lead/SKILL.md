@@ -15,6 +15,7 @@ disable-model-invocation: true
 3. `.codex/agents/loop-engineering-manager/AGENT.md` を読む
 4. AGENT.md の手順に従って Observe から Learn まで進める
 5. ドメイン判断がある場合は `docs/domain/warikan/common-invariants.md` を読む
+6. AI Systems Engineer 観点で、Agent / Skill / Rule / Prompt / workflow の改善候補を Learn に残す
 
 ## 入力例
 
@@ -30,4 +31,5 @@ disable-model-invocation: true
 - 今回のループ対象と対象外が明確である
 - 使用したゲートと判定が残っている
 - 次ループへ持ち越す項目が分類されている
+- Agent / Skill / Rule / Prompt / workflow の改善候補が、必要に応じて Learn に残っている
 - 自動実行した範囲と、ユーザー承認が必要な範囲が分かれている

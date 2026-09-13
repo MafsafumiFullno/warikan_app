@@ -100,17 +100,17 @@ warikan_app/
 
 - `spec-delivery-manager`: `spec-architect` / `tdd-implementer` / `api-contract-keeper` / `qa-spec-guard` を束ねる業務進行管理
 - `refactor-manager`: 改善・改修に必要なSkill選択と回帰確認の業務進行管理
-- `loop-engineering-manager`: Observe / Frame / Act / Verify / Learn の反復とゲート判定を管理
-- Agent は状況に応じて必要な Skill を選択し、業務の進行状況を管理する
+- `loop-engineering-manager`: Observe / Frame / Act / Verify / Learn の反復、ゲート判定、AI Systems Engineer としてのハーネス改善を管理
+- Agent は Project Manager として、状況に応じて必要な Skill を選択し、工程、ブロッカー、承認待ち、役割間の受け渡しを管理する
 - ループでは低リスク作業を自動判定で進め、納品フローでは必要な承認ゲートを管理する
 
 ### Skill（実行能力層）
 
 - `loop-engineering-lead`: 観測、仮説、最小変更、検証、学習のループを開始する入口
-- `spec-architect`: 仕様分解、受け入れ基準、要件確認（Assumptions / Unknowns / Open Questions）
-- `tdd-implementer`: Preflight, Red, Test Review, Green, Refactor, Regression で実装
+- `spec-architect`: PDM / Domain Expert / System Architect / Spec Architect による価値、優先度、ドメイン不変条件、技術構造、受け入れ基準、要件確認（Assumptions / Unknowns / Open Questions）の整理
+- `tdd-implementer`: AI Implementation Lead / Infra / SRE / Security / Database / Backend / Frontend / UI/UX / Test の役割分担による Preflight, Red, Test Review, Green, Refactor, Regression で実装
 - `api-contract-keeper`: backend / frontend / tests の契約同期
-- `qa-spec-guard`: 仕様適合とテスト十分性の判定
+- `qa-spec-guard`: Spec / Contract / Data / Security / Regression Reviewer による仕様適合、契約同期、データ整合、セキュリティ、回帰リスクの判定
 - `pr-coordinator`: コミット対象資産、PR内容、push/PR作成承認の管理
 
 ## 推奨フロー
@@ -182,11 +182,12 @@ warikan_app/
 
 `spec-delivery-lead` では、仕様や実装内容を人間が確認すべき Phase 完了後にユーザー承認を取ります。
 
-- Phase 1: 要件漏れ・未確定要件（Unknowns）なしを確認
+- Phase 1: PDM / Domain Expert / System Architect / Spec Architect の観点で、要件漏れ・未確定要件（Unknowns）なしを確認
 - Phase 2: 受け入れ基準に対応するテストが Green であることを確認
-- Phase 2では、変更リスクに応じて Spec / Contract / Data / Regression の観点でテストレビューしてから Green へ進む
+- Phase 2では、変更範囲に応じて AI Implementation Lead / Infra / SRE / Security / Database / Backend / Frontend / UI/UX / Test の役割を割り当てる
+- Phase 2では、変更リスクに応じて Spec / Contract / Data / Security / Regression の観点でテストレビューしてから Green へ進む
 - Phase 3: API 契約の未反映リスクがないことを確認
-- Phase 4: 最終判定（Pass / Pass with Notes）を確認
+- Phase 4: `qa-spec-guard` で必要な Reviewer を割り当て、最終判定（Pass / Pass with Notes）を確認
 - 主要ユーザーフロー影響時は E2E（`cd frontend && npm run e2e`）実行結果を確認
 
 承認が必要な Phase では、承認がなければ次工程に進みません。

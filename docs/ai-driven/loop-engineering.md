@@ -18,7 +18,7 @@ AI駆動開発を単発の実装依頼ではなく、観測、仮説、変更、
 
 ## 実装時のテストレビュー
 
-TDDでは、実装者が作ったテストだけでGreenへ進まない。変更リスクに応じて、Spec Reviewer、Contract Reviewer、Data Reviewer、Regression Reviewer の観点を使い、テストの抜け漏れを確認してから実装する。
+TDDでは、実装者が作ったテストだけでGreenへ進まない。変更リスクに応じて、Spec Reviewer、Contract Reviewer、Data Reviewer、Security Reviewer、Regression Reviewer の観点を使い、テストの抜け漏れを確認してから実装する。
 
 ## ゲート
 
