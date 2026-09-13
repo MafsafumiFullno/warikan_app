@@ -34,14 +34,14 @@ warikan_app/
 │   ├── agents/                          # Agent定義（Skill管理・業務進行管理）
 │   │   ├── spec-delivery-manager/
 │   │   ├── loop-engineering-manager/
-│   │   └── sre-manager/
+│   │   └── platform-engineering-manager/
 │   └── skills/                          # Skill定義（実行能力 + ランチャー）
 │       ├── loop-engineering-lead/        # agents/loop-engineering-manager を起動
 │       ├── spec-delivery-lead/          # agents/spec-delivery-manager を起動
 │       ├── spec-architect/
 │       ├── tdd-implementer/
 │       ├── api-contract-keeper/
-│       ├── sre-dependency-maintainer/
+│       ├── platform-dependency-maintainer/
 │       ├── qa-spec-guard/
 │       └── pr-coordinator/
 │           └── scripts/                  # Skill用補助スクリプト
@@ -49,14 +49,14 @@ warikan_app/
 │   ├── agents/                          # Agent定義（Skill管理・業務進行管理）
 │   │   ├── spec-delivery-manager/
 │   │   ├── loop-engineering-manager/
-│   │   └── sre-manager/
+│   │   └── platform-engineering-manager/
 │   └── skills/                          # Skill定義（実行能力 + ランチャー）
 │       ├── loop-engineering-lead/
 │       ├── spec-delivery-lead/
 │       ├── spec-architect/
 │       ├── tdd-implementer/
 │       ├── api-contract-keeper/
-│       ├── sre-dependency-maintainer/
+│       ├── platform-dependency-maintainer/
 │       ├── qa-spec-guard/
 │       └── pr-coordinator/
 ├── docs/
@@ -75,7 +75,7 @@ warikan_app/
 
 - Rulesは「常時必要な最小規約」だけを置く
 - Agentは「Skill選択・承認ゲート・業務進行管理」、Skillは「各工程の実行能力」に分離する
-- `loop-engineering-manager` は既存の `spec-delivery-manager` / `sre-manager` の上位で、小さな既存改修、反復改善、学習記録を管理する
+- `loop-engineering-manager` は既存の `spec-delivery-manager` / `platform-engineering-manager` の上位で、小さな既存改修、反復改善、学習記録を管理する
 - ハーネス構造の正本は `docs/ai-driven/harness-engineering.md` に置き、Rulesには要約だけ置く
 - `/spec-delivery-lead` などを明示呼び出しするため、skills側にランチャーを置く
 - Skillsは「手順・進め方」を置き、必要時に呼び出す
@@ -100,7 +100,7 @@ warikan_app/
 
 - `spec-delivery-manager`: `spec-architect` / `tdd-implementer` / `api-contract-keeper` / `qa-spec-guard` を束ねる業務進行管理
 - `loop-engineering-manager`: Observe / Frame / Act / Verify / Learn の反復、ゲート判定、AI Systems Engineer としてのハーネス改善を管理
-- `sre-manager`: 依存更新、ランタイム警告、CI/E2E基盤の検知、原因分類、最小修正、検証、PR準備への受け渡しを管理
+- `platform-engineering-manager`: 依存更新、ランタイム警告、CI/E2E基盤の検知、原因分類、最小修正、検証、PR準備への受け渡しを管理
 - Agent は Project Manager として、状況に応じて必要な Skill を選択し、工程、ブロッカー、承認待ち、役割間の受け渡しを管理する
 - ループでは低リスク作業を自動判定で進め、納品フローでは必要な承認ゲートを管理する
 
@@ -110,7 +110,7 @@ warikan_app/
 - `spec-architect`: PDM / Domain Expert / System Architect / Spec Architect による価値、優先度、ドメイン不変条件、技術構造、受け入れ基準、要件確認（Assumptions / Unknowns / Open Questions）の整理
 - `tdd-implementer`: AI Implementation Lead / Infra / SRE / Security / Database / Backend / Frontend / UI/UX / Test の役割分担による Preflight, Red, Test Review, Green, Refactor, Regression で実装
 - `api-contract-keeper`: backend / frontend / tests の契約同期
-- `sre-dependency-maintainer`: SRE観点で依存更新、ランタイム警告、CI/E2E基盤、Dependabot PRを検知、切り分け、最小修正、検証、PR準備まで進める
+- `platform-dependency-maintainer`: Platform Engineering観点で依存更新、ランタイム警告、CI/E2E基盤、Dependabot PRを検知、切り分け、最小修正、検証、PR準備まで進める。SREは本番信頼性や復旧性への影響がある場合のレビュー観点として扱う
 - `qa-spec-guard`: Spec / Contract / Data / Security / Regression Reviewer による仕様適合、契約同期、データ整合、セキュリティ、回帰リスクの判定
 - `pr-coordinator`: コミット対象資産、PR内容、push/PR作成承認の管理
 

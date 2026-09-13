@@ -1,10 +1,10 @@
 ---
-name: sre-dependency-maintainer
-description: SRE観点で依存更新、PHP/Node警告、CI失敗、E2Eブラウザ準備を検知し、最小修正と検証を行ってPR準備まで進める。
+name: platform-dependency-maintainer
+description: Platform Engineering観点で依存更新、PHP/Node警告、CI失敗、E2Eブラウザ準備を検知し、最小修正と検証を行ってPR準備まで進める。
 disable-model-invocation: true
 ---
 
-# SRE Dependency Maintainer
+# Platform Dependency Maintainer
 
 ## 使いどころ
 
@@ -12,6 +12,7 @@ disable-model-invocation: true
 - CI、Composer、npm、Playwright、GitHub Actions の失敗を切り分ける
 - テストを通すために依存、ランナー、警告隔離、ブラウザ準備の設定を整える
 - アプリ仕様ではなく、開発・検証基盤の健全性を保つ
+- 本番信頼性や復旧性への影響がある場合はSREレビュー観点を残す
 
 ## 原則
 
