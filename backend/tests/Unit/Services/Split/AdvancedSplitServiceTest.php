@@ -11,7 +11,6 @@ class AdvancedSplitServiceTest extends TestCase
     private function invokePrivate(string $methodName, object $instance, array $args = [])
     {
         $ref = new ReflectionMethod($instance, $methodName);
-        $ref->setAccessible(true);
         return $ref->invokeArgs($instance, $args);
     }
 

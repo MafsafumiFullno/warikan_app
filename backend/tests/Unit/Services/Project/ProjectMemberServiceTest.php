@@ -475,8 +475,8 @@ class ProjectMemberServiceTest extends TestCase
         $result = $this->projectMemberService->getProjectMembers($owner->customer_id, $project->project_id);
         $members = collect($result['members']);
 
-        $this->assertEquals(1000, $members->firstWhere('id', $member1->id)['total_expense']);
-        $this->assertEquals(2500, $members->firstWhere('id', $member2->id)['total_expense']);
+        $this->assertEquals(1000, $members->firstWhere('project_member_id', $member1->project_member_id)['total_expense']);
+        $this->assertEquals(2500, $members->firstWhere('project_member_id', $member2->project_member_id)['total_expense']);
     }
 
     // ==== プロジェクトのメンバー追加テスト =====
