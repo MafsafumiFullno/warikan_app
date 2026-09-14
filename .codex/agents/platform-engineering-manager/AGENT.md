@@ -25,6 +25,7 @@ SRE は信頼性リスク、本番運用影響、監視・復旧観点のレビ�
 - PHP、Node、Laravel、Next.js、Playwright などのランタイム互換性
 - CI matrix、必須テスト、警告検知、E2Eブラウザ準備
 - Dependabot PR の切り分け、検証、最小修正
+- 低リスク依存更新の自動マージ候補化
 
 ## 対象外
 
@@ -49,6 +50,8 @@ SRE は信頼性リスク、本番運用影響、監視・復旧観点のレビ�
 - 一時隔離には解除条件を残す
 - CIが失敗を見逃している場合は必須ゲート化する
 - CI時間やPR数が増える変更は、運用コストを明示する
+- 自動マージは semver patch と開発依存の semver minor に限定する
+- runtime 依存の semver minor と semver major は人間レビューに残す
 - 仕様やAPI契約に踏み込む場合は、Platform Engineering単独で判断せず該当Agentへ戻す
 - 本番信頼性や復旧性への影響がある場合は、SREレビュー観点を明示する
 

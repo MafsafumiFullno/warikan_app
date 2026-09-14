@@ -42,6 +42,8 @@ disable-model-invocation: true
 - 複数ランタイムでの検知が必要なら、PHP / Node のmatrixを追加する
 - Playwrightブラウザが原因なら、CIとローカルの入口でブラウザ準備が揃うようにする
 - Dependabotが未設定なら、Composer、npm、GitHub Actions の更新PRを週次で作る
+- 自動マージを入れる場合は、semver patch と開発依存の semver minor に限定する
+- runtime 依存の semver minor と semver major は自動マージ対象外にする
 
 ## Verify
 
