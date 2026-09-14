@@ -44,6 +44,7 @@ disable-model-invocation: true
 - Dependabotが未設定なら、Composer、npm、GitHub Actions の更新PRを週次で作る
 - 自動マージを入れる場合は、semver patch と開発依存の semver minor に限定する
 - runtime 依存の semver minor と semver major は自動マージ対象外にする
+- CI が失敗した依存PRは自動マージせず、原因を解消してから再実行する
 
 ## Verify
 

@@ -52,6 +52,7 @@ SRE は信頼性リスク、本番運用影響、監視・復旧観点のレビ�
 - CI時間やPR数が増える変更は、運用コストを明示する
 - 自動マージは semver patch と開発依存の semver minor に限定する
 - runtime 依存の semver minor と semver major は人間レビューに残す
+- 自動マージは required checks とCI成功を前提にし、失敗時は原因解消までマージしない
 - 仕様やAPI契約に踏み込む場合は、Platform Engineering単独で判断せず該当Agentへ戻す
 - 本番信頼性や復旧性への影響がある場合は、SREレビュー観点を明示する
 
