@@ -65,7 +65,8 @@ AI駆動開発を安定して回すための足場を整理する。ここでい
 | API契約 | backend / frontend / tests の同期 | `api-contract-keeper` |
 | Platform実務 | Platform Engineering の実務手順。Platform Engineering Manager が必要時に呼び出す | `platform-dependency-maintainer` |
 | QA判定 | Spec / Contract / Data / Security / Regression Reviewer による仕様適合、契約同期、データ整合、セキュリティ、回帰リスク | `qa-spec-guard` |
-| PR/Git | 対象資産、PR内容、push/PR作成承認 | `pr-coordinator` |
+| 資産反映ゲート | 並行作業を含む複数PR候補の交通整理、優先度、依存関係、PR分割、反映可否判定 | `asset-release-gate-manager` |
+| PR/Git | 反映OKになったPRの対象資産、PR内容、push/PR作成承認 | `pr-coordinator` |
 
 ## 重複を見つけた時の寄せ先
 
@@ -77,7 +78,7 @@ AI駆動開発を安定して回すための足場を整理する。ここでい
 
 ## PRまでの責務分離
 
-- Agent: いつPR準備へ進むか、承認が取れているかを管理する
+- Agent: いつPR準備へ進むか、承認が取れているか、資産反映ゲートを通せるかを管理する
 - Skill: PRまでの手順、提示形式、安全ルールを管理する
 - Script: Git状態、差分、テスト、PR説明材料、PR作成を機械的に処理する
 - User: コミット対象、push対象、PR内容を承認する

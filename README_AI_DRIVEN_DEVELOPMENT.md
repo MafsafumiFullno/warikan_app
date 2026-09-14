@@ -202,6 +202,8 @@ warikan_app/
 - アプリ機能修正とAI駆動開発の体制整備は、原則として別ブランチに分離する
 - 体制整備は `chore/loop-engineering-*` 系ブランチを使う
 - 別件の不具合を見つけた場合は、その場で混ぜずに issue、stash、別ブランチへ分離する
+- 新しい作業ブランチは原則 `main` から `bash .cursor/skills/pr-coordinator/scripts/create-branch.sh "type/name"` で作成し、命名とベースブランチを揃える
+- `main` 以外をベースにする必要がある場合は、ユーザー確認後に `APPROVED_NON_MAIN_BASE=1 BASE_BRANCH="base/name"` を付けて作成する
 - コミット前に `bash .cursor/skills/pr-coordinator/scripts/commit-assets-check.sh` で対象資産を確認する
 - PR前に `bash .cursor/skills/pr-coordinator/scripts/pr-ready-check.sh` を実行し、差分とテスト結果を確認する
 - PR内容の提示前に `bash .cursor/skills/pr-coordinator/scripts/prepare-pr-summary.sh` を実行し、反映資産・コミット・差分・PR本文テンプレートを確認する
