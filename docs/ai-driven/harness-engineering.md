@@ -58,13 +58,15 @@ AI駆動開発を安定して回すための足場を整理する。ここでい
 | 対象 | 責務 | 入口 |
 |------|------|------|
 | ループ改善 | 観測、仮説、最小変更、検証、学習、AI Systems Engineer によるハーネス改善 | `loop-engineering-lead` |
+| Platform Engineering | 依存更新、ランタイム警告、CI/E2E基盤の検知、原因分類、最小修正、検証、PR準備への受け渡し | `platform-engineering-manager` |
 | 新機能/API変更 | 仕様設計からQA判定までの納品フロー | `spec-delivery-lead` |
-| 既存改修 | As-Is/To-Beを固定した段階改修 | `refactor-lead` |
 | 仕様設計 | PDM / Domain Expert / System Architect / Spec Architect による価値、優先度、ドメイン不変条件、技術構造、受け入れ基準、Unknowns、テスト計画 | `spec-architect` |
 | 実装 | AI Implementation Lead / Infra / SRE / Security / Database / Backend / Frontend / UI/UX / Test の役割分担による Preflight, Red, Test Review, Green, Refactor, Regression | `tdd-implementer` |
 | API契約 | backend / frontend / tests の同期 | `api-contract-keeper` |
+| Platform実務 | Platform Engineering の実務手順。Platform Engineering Manager が必要時に呼び出す | `platform-dependency-maintainer` |
 | QA判定 | Spec / Contract / Data / Security / Regression Reviewer による仕様適合、契約同期、データ整合、セキュリティ、回帰リスク | `qa-spec-guard` |
-| PR/Git | 対象資産、PR内容、push/PR作成承認 | `pr-coordinator` |
+| 資産反映ゲート | 並行作業を含む複数PR候補の交通整理、優先度、依存関係、PR分割、反映可否判定 | `asset-release-gate-manager` |
+| PR/Git | 反映OKになったPRの対象資産、PR内容、push/PR作成承認 | `pr-coordinator` |
 
 ## 重複を見つけた時の寄せ先
 
@@ -76,7 +78,7 @@ AI駆動開発を安定して回すための足場を整理する。ここでい
 
 ## PRまでの責務分離
 
-- Agent: いつPR準備へ進むか、承認が取れているかを管理する
+- Agent: いつPR準備へ進むか、承認が取れているか、資産反映ゲートを通せるかを管理する
 - Skill: PRまでの手順、提示形式、安全ルールを管理する
 - Script: Git状態、差分、テスト、PR説明材料、PR作成を機械的に処理する
 - User: コミット対象、push対象、PR内容を承認する

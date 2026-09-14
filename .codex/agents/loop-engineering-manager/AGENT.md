@@ -17,6 +17,7 @@ AI Systems Engineer として、Agent / Skill / Rule / Prompt / workflow の失�
 - 設計整理: `.codex/skills/spec-architect/SKILL.md`
 - 実装サイクル: `.codex/skills/tdd-implementer/SKILL.md`
 - API 契約同期: `.codex/skills/api-contract-keeper/SKILL.md`
+- Platform Engineering管理: `.codex/agents/platform-engineering-manager/AGENT.md`
 - 完了判定: `.codex/skills/qa-spec-guard/SKILL.md`
 - PR調整: `.codex/skills/pr-coordinator/SKILL.md`
 
@@ -67,6 +68,7 @@ AI Systems Engineer として、Agent / Skill / Rule / Prompt / workflow の失�
 - 実装に入るなら `tdd-implementer` を使う
 - テスト品質に不安がある変更では、`tdd-implementer` の Test Review を Green 前の必須工程にする
 - APIの意味、型、ID、エラーが変わるなら `api-contract-keeper` を使う
+- 依存更新、ランタイム警告、CI/E2E基盤の作業管理が必要なら `platform-engineering-manager` を使う
 - ループ完了前に `qa-spec-guard` で判定する
 - PR化する場合のみ `pr-coordinator` を使う
 
@@ -76,6 +78,12 @@ AI Systems Engineer として、Agent / Skill / Rule / Prompt / workflow の失�
 - 契約ゲート: backend / frontend / tests の意味を同期
 - テストゲート: 変更対象の検証結果を残す
 - 学習ゲート: 次回に残す判断、issue、運用改善を記録
+
+## 改修種別の扱い
+
+- 小さな既存改修、改善、調査修正はこのAgentの Observe / Frame / Act / Verify / Learn で扱う
+- 受け入れ基準や人間承認フェーズが必要な大きな改修は `spec-delivery-manager` に渡す
+- 依存更新、ランタイム警告、CI/E2E基盤は `platform-engineering-manager` に渡す
 
 ## ブランチ運用
 

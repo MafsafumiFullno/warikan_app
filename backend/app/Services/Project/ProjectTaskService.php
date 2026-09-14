@@ -53,7 +53,7 @@ class ProjectTaskService extends BaseService
             'member_id' => 'nullable|integer|exists:project_members,id',
             'member_name' => 'nullable|required_without:member_id|string|max:255',
             'target_member_ids' => 'nullable|array',
-            'target_member_ids.*' => 'integer|exists:project_members,project_member_id',
+            'target_member_ids.*' => 'integer',
         ]);
 
         // プロジェクトの存在確認とオーナー権限チェック
@@ -107,7 +107,7 @@ class ProjectTaskService extends BaseService
             'member_id' => 'nullable|integer|exists:project_members,id',
             'member_name' => 'nullable|required_without:member_id|string|max:255',
             'target_member_ids' => 'nullable|array',
-            'target_member_ids.*' => 'integer|exists:project_members,project_member_id',
+            'target_member_ids.*' => 'integer',
         ]);
 
         // オーナー権限チェック
@@ -117,12 +117,12 @@ class ProjectTaskService extends BaseService
         $projectTask = $this->getProjectTask($projectId, $taskId);
 
         return $this->executeInTransaction(function () use ($project, $projectTask, $validated, $taskId, $customerId) {
-            $payerInfo = $this->getPayerInfo($project, $validated['member_name'], $customerId);
+            $payerInfo = $this->resolvePayerInfo($project, $validated, $customerId);
 
             // プロジェクトタスクを更新
             $projectTask->update([
                 'task_name' => $validated['accounting_name'],
-                'task_member_name' => $validated['member_name'],
+                'task_member_name' => $payerInfo['member_name'],
                 'member_id' => $payerInfo['member_id'],
                 'accounting_amount' => $validated['amount'],
                 'accounting_type' => $validated['accounting_type'] ?? 'expense',
@@ -197,13 +197,13 @@ class ProjectTaskService extends BaseService
             ];
         }
 
-        return $this->getPayerInfoByName($project, $validated['member_name']);
+        return $this->getPayerInfoByName($project, $validated['member_name'], $customerId);
     }
 
     /**
      * 支払人情報を名前から取得（旧入力の互換用）
      */
-    private function getPayerInfoByName(Project $project, string $memberName): array
+    private function getPayerInfoByName(Project $project, string $memberName, $customerId): array
     {
         $payerMember = ProjectMember::where('project_id', $project->project_id)
             ->where('del_flg', false)
@@ -216,14 +216,16 @@ class ProjectTaskService extends BaseService
         if ($payerMember) {
             return [
                 'member_id' => $payerMember->id,
-                'customer_id' => $payerMember->customer_id
+                'customer_id' => $payerMember->customer_id,
+                'member_name' => $this->getMemberName($payerMember),
             ];
         }
 
         return [
             'type' => 'guest',
             'member_id' => null,
-            'customer_id' => $customerId
+            'customer_id' => $customerId,
+            'member_name' => $memberName,
         ];
     }
 

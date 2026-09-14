@@ -6,8 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "e2e": "playwright test",
+    "lint": "eslint .",
+    "e2e": "playwright install chromium && playwright test",
     "e2e:ui": "playwright test --ui",
     "e2e:headed": "playwright test --headed",
     "e2e:install": "playwright install"

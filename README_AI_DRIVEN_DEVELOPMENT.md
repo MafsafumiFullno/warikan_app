@@ -33,30 +33,30 @@ warikan_app/
 │   │   ├── ai-driven-harness.mdc
 │   ├── agents/                          # Agent定義（Skill管理・業務進行管理）
 │   │   ├── spec-delivery-manager/
-│   │   ├── refactor-manager/
-│   │   └── loop-engineering-manager/
+│   │   ├── loop-engineering-manager/
+│   │   └── platform-engineering-manager/
 │   └── skills/                          # Skill定義（実行能力 + ランチャー）
 │       ├── loop-engineering-lead/        # agents/loop-engineering-manager を起動
 │       ├── spec-delivery-lead/          # agents/spec-delivery-manager を起動
-│       ├── refactor-lead/               # agents/refactor-manager を起動
 │       ├── spec-architect/
 │       ├── tdd-implementer/
 │       ├── api-contract-keeper/
+│       ├── platform-dependency-maintainer/
 │       ├── qa-spec-guard/
 │       └── pr-coordinator/
 │           └── scripts/                  # Skill用補助スクリプト
 ├── .codex/
 │   ├── agents/                          # Agent定義（Skill管理・業務進行管理）
 │   │   ├── spec-delivery-manager/
-│   │   ├── refactor-manager/
-│   │   └── loop-engineering-manager/
+│   │   ├── loop-engineering-manager/
+│   │   └── platform-engineering-manager/
 │   └── skills/                          # Skill定義（実行能力 + ランチャー）
 │       ├── loop-engineering-lead/
 │       ├── spec-delivery-lead/
-│       ├── refactor-lead/
 │       ├── spec-architect/
 │       ├── tdd-implementer/
 │       ├── api-contract-keeper/
+│       ├── platform-dependency-maintainer/
 │       ├── qa-spec-guard/
 │       └── pr-coordinator/
 ├── docs/
@@ -75,7 +75,7 @@ warikan_app/
 
 - Rulesは「常時必要な最小規約」だけを置く
 - Agentは「Skill選択・承認ゲート・業務進行管理」、Skillは「各工程の実行能力」に分離する
-- `loop-engineering-manager` は既存の `spec-delivery-manager` / `refactor-manager` の上位で、反復改善の入口と学習記録を管理する
+- `loop-engineering-manager` は既存の `spec-delivery-manager` / `platform-engineering-manager` の上位で、小さな既存改修、反復改善、学習記録を管理する
 - ハーネス構造の正本は `docs/ai-driven/harness-engineering.md` に置き、Rulesには要約だけ置く
 - `/spec-delivery-lead` などを明示呼び出しするため、skills側にランチャーを置く
 - Skillsは「手順・進め方」を置き、必要時に呼び出す
@@ -99,8 +99,8 @@ warikan_app/
 ### Agent（業務管理層）
 
 - `spec-delivery-manager`: `spec-architect` / `tdd-implementer` / `api-contract-keeper` / `qa-spec-guard` を束ねる業務進行管理
-- `refactor-manager`: 改善・改修に必要なSkill選択と回帰確認の業務進行管理
 - `loop-engineering-manager`: Observe / Frame / Act / Verify / Learn の反復、ゲート判定、AI Systems Engineer としてのハーネス改善を管理
+- `platform-engineering-manager`: 依存更新、ランタイム警告、CI/E2E基盤の検知、原因分類、最小修正、検証、PR準備への受け渡しを管理
 - Agent は Project Manager として、状況に応じて必要な Skill を選択し、工程、ブロッカー、承認待ち、役割間の受け渡しを管理する
 - ループでは低リスク作業を自動判定で進め、納品フローでは必要な承認ゲートを管理する
 
@@ -110,6 +110,7 @@ warikan_app/
 - `spec-architect`: PDM / Domain Expert / System Architect / Spec Architect による価値、優先度、ドメイン不変条件、技術構造、受け入れ基準、要件確認（Assumptions / Unknowns / Open Questions）の整理
 - `tdd-implementer`: AI Implementation Lead / Infra / SRE / Security / Database / Backend / Frontend / UI/UX / Test の役割分担による Preflight, Red, Test Review, Green, Refactor, Regression で実装
 - `api-contract-keeper`: backend / frontend / tests の契約同期
+- `platform-dependency-maintainer`: Platform Engineering観点で依存更新、ランタイム警告、CI/E2E基盤、Dependabot PRを検知、切り分け、最小修正、検証、PR準備まで進める。SREは本番信頼性や復旧性への影響がある場合のレビュー観点として扱う
 - `qa-spec-guard`: Spec / Contract / Data / Security / Regression Reviewer による仕様適合、契約同期、データ整合、セキュリティ、回帰リスクの判定
 - `pr-coordinator`: コミット対象資産、PR内容、push/PR作成承認の管理
 
@@ -157,10 +158,13 @@ warikan_app/
 ### 5) 既存機能の改善・改修
 
 ```text
-/refactor-lead
+/loop-engineering-lead
 対象: [改修対象]
 目的: [改善したい点]
+モード: fix
 ```
+
+受け入れ基準や人間承認フェーズが必要な大きな改修は `/spec-delivery-lead` を使います。
 
 ### 6) PR準備
 
@@ -198,12 +202,29 @@ warikan_app/
 - アプリ機能修正とAI駆動開発の体制整備は、原則として別ブランチに分離する
 - 体制整備は `chore/loop-engineering-*` 系ブランチを使う
 - 別件の不具合を見つけた場合は、その場で混ぜずに issue、stash、別ブランチへ分離する
+- 新しい作業ブランチは原則 `main` から `bash .cursor/skills/pr-coordinator/scripts/create-branch.sh "type/name"` で作成し、命名とベースブランチを揃える
+- `main` 以外をベースにする必要がある場合は、ユーザー確認後に `APPROVED_NON_MAIN_BASE=1 BASE_BRANCH="base/name"` を付けて作成する
 - コミット前に `bash .cursor/skills/pr-coordinator/scripts/commit-assets-check.sh` で対象資産を確認する
 - PR前に `bash .cursor/skills/pr-coordinator/scripts/pr-ready-check.sh` を実行し、差分とテスト結果を確認する
 - PR内容の提示前に `bash .cursor/skills/pr-coordinator/scripts/prepare-pr-summary.sh` を実行し、反映資産・コミット・差分・PR本文テンプレートを確認する
 - push/PR作成前に、反映資産とPR内容をユーザーへ提示して承認を得る
 - 承認後は `APPROVED_ASSETS=1 APPROVED_PR=1 bash .cursor/skills/pr-coordinator/scripts/create-pr.sh "PR title"` を使う
 - PR本文は `.github/pull_request_template.md` に沿って、概要、変更種別、変更点、仕様・契約、確認ゲート、テスト、レビュー観点、除外変更、特記事項、関連Issueを埋める
+
+## 依存更新 / 警告の運用
+
+- 依存更新は `.github/dependabot.yml` で Composer、frontend npm、GitHub Actions を週次PR化する
+- Dependabot PR は CI の結果を見てマージ判断し、アプリコード修正と依存更新を原則として分ける
+- `.github/workflows/dependabot-automerge.yml` で低リスクな Dependabot PR は CI 通過後に自動マージ候補にする
+- 自動マージ対象は semver patch と、開発依存の semver minor に限定する
+- runtime 依存の semver minor と semver major は人間レビューを必須にする
+- 自動マージは GitHub の required checks が設定され、CI が成功することを前提にする
+- CI が失敗した依存PRは自動マージせず、原因を解消してから再実行する
+- Backend CI は PHP 8.2 / 8.4 / 8.5 で `composer test` を必須実行する
+- PHP 8.5 など新しい実行環境で依存パッケージ由来の非推奨警告が先行して出る場合、テストコマンド側で一時的に隔離する
+- アプリコード由来の警告は抑制対象にせず、最小PRで修正してからテストを通す
+- Laravel / PHP のバージョン引き上げは、Dependabot PR と CI 結果を確認し、互換性修正をまとめた専用PRで行う
+- 一時的な警告隔離を入れた場合は、PR本文の「特記事項・懸念点」か docs に解除条件を残す
 
 ## 要件漏れを防ぐコツ
 
@@ -246,9 +267,10 @@ warikan_app/
 モード: bugfix
 
 # 改修
-/refactor-lead
+/loop-engineering-lead
 対象: ...
 目的: ...
+モード: fix
 
 # PR準備
 /pr-coordinator
