@@ -88,7 +88,7 @@ class AdvancedSplitService
                 $payerCustomerId = null;
                 $payerMemberName = null;
                 
-                if ($task->projectMember) {
+                if ($task->projectMember && !$task->projectMember->del_flg) {
                     $payerMemberId = $task->projectMember->id;
                     $payerCustomerId = $task->projectMember->customer_id;
                     $payerMemberName = $this->getMemberName($task->projectMember);
@@ -104,7 +104,7 @@ class AdvancedSplitService
                     'payer_member_name' => $payerMemberName,
                     'target_members' => $task->taskMembers->map(function ($taskMember) {
                         $member = $taskMember->projectMember;
-                        if (!$member) return null;
+                        if (!$member || $member->del_flg) return null;
                         
                         return [
                             'member_id' => $member->id,

@@ -134,6 +134,59 @@ class ProjectShareLinkApiTest extends TestCase
             ->assertJsonMissingPath('project.members.0.role');
     }
 
+    public function test_public_endpoint_excludes_deleted_project_members_from_accounting_targets(): void
+    {
+        $owner = $this->createCustomer([
+            'email' => 'owner@example.com',
+            'nick_name' => 'オーナー',
+        ]);
+        $project = $this->createProject($owner->customer_id);
+        $ownerMember = $this->createMember($project->project_id, $owner->customer_id, $this->ownerRole->role_id);
+        $activeCustomer = $this->createCustomer([
+            'email' => 'active@example.com',
+            'nick_name' => '現役メンバー',
+        ]);
+        $deletedCustomer = $this->createCustomer([
+            'email' => 'deleted@example.com',
+            'nick_name' => '削除済みメンバー',
+        ]);
+        $activeMember = $this->createMember($project->project_id, $activeCustomer->customer_id, $this->memberRole->role_id, 2);
+        $deletedMember = $this->createMember($project->project_id, $deletedCustomer->customer_id, $this->memberRole->role_id, 3);
+        $deletedMember->update(['del_flg' => true]);
+
+        $task = ProjectTask::create([
+            'project_id' => $project->project_id,
+            'project_task_code' => 1,
+            'task_name' => '夕食代',
+            'task_member_name' => 'オーナー',
+            'accounting_amount' => 4000,
+            'accounting_type' => 'expense',
+            'breakdown' => null,
+            'memo' => null,
+            'member_id' => $ownerMember->id,
+            'del_flg' => false,
+        ]);
+        ProjectTaskMember::create([
+            'task_id' => $task->task_id,
+            'member_id' => $activeMember->id,
+            'del_flg' => false,
+        ]);
+        ProjectTaskMember::create([
+            'task_id' => $task->task_id,
+            'member_id' => $deletedMember->id,
+            'del_flg' => false,
+        ]);
+        Sanctum::actingAs($owner);
+
+        $createResponse = $this->postJson("/api/projects/{$project->project_id}/share-link");
+        $token = $createResponse->json('share_link.token');
+
+        $response = $this->getJson("/api/share/{$token}");
+
+        $response->assertOk()
+            ->assertJsonPath('project.accountings.0.target_members', ['現役メンバー']);
+    }
+
     public function test_public_endpoint_returns_404_for_invalid_token(): void
     {
         $response = $this->getJson('/api/share/invalid-token');

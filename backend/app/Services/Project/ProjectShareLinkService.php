@@ -93,7 +93,11 @@ class ProjectShareLinkService extends BaseService
             ->map(function (ProjectTask $task) {
                 $targetMembers = $task->taskMembers->map(function ($taskMember) {
                     $member = $taskMember->projectMember;
-                    return $member ? $this->getMemberName($member) : null;
+                    if (!$member || $member->del_flg) {
+                        return null;
+                    }
+
+                    return $this->getMemberName($member);
                 })->filter()->values()->all();
 
                 return [
