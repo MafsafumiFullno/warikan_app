@@ -46,6 +46,16 @@ disable-model-invocation: true
 - runtime 依存の semver minor と semver major は自動マージ対象外にする
 - CI が失敗した依存PRは自動マージせず、原因を解消してから再実行する
 
+## Dependabot / Dependency Triage
+
+- Dependabot PRは、通常CIの失敗と自動マージ設定の失敗を分けて判断する
+- 自動マージ有効化だけが失敗している場合は、依存更新自体の失敗とは扱わず、通常CIと差分内容を確認する
+- lockfile競合は手編集で継ぎはぎせず、最新mainを取り込んだうえでComposerまたはnpmで再生成する
+- 同系統の依存PRを複数マージする場合は、先にマージされたPRによるlockfile変化を前提に残りのPRを更新する
+- 複数依存をまとめたPRが失敗した場合は、失敗原因となる依存を切り分け、必要ならグループ分割や保留を提案する
+- フレームワーク、lint、TypeScript、E2Eツールの互換性問題はPlatform Engineeringの責務として扱い、アプリ仕様の問題へ早合点しない
+- 具体的な失敗パターンや再発防止メモは `docs/ai-driven/dependency-maintenance-knowledge.md` に残す
+
 ## Verify
 
 変更範囲に応じて、以下を実行または未実行理由を残す。

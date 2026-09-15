@@ -36,6 +36,7 @@ AI駆動開発を安定して回すための足場を整理する。ここでい
 
 - 置き場所: `docs/ai-driven/`, `docs/domain/`
 - 内容: ループ運用、ハーネス構造、ドメイン不変条件、issue化した設計判断
+- 例: 依存更新の再発ナレッジは `docs/ai-driven/dependency-maintenance-knowledge.md` に置く
 - 書かないもの: ツール固有の呼び出し手順だけで完結するもの
 
 ### Scripts
@@ -53,6 +54,7 @@ AI駆動開発を安定して回すための足場を整理する。ここでい
 - Engineering責務: `docs/ai-driven/engineering-responsibilities.md`
 - ループエンジニアリング: `docs/ai-driven/loop-engineering.md`
 - ハーネス構造: `docs/ai-driven/harness-engineering.md`
+- 依存更新ナレッジ: `docs/ai-driven/dependency-maintenance-knowledge.md`
 - PR/Git補助: `.cursor/skills/pr-coordinator/SKILL.md` と `.cursor/skills/pr-coordinator/scripts/`
 
 ## 現在の責務マップ
