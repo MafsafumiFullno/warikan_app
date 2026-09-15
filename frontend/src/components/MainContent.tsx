@@ -3,32 +3,11 @@ import { useState, useEffect } from 'react';
 import { apiFetch } from '../lib/api';
 import ProjectsList from '../pages/projectslist';
 import Profile from '../pages/profile';
+import type { PaginationInfo } from '@/types/api';
+import type { Project, ProjectsResponse } from '@/types/warikan';
 
 interface MainContentProps {
   activeTab: string;
-}
-
-interface Project {
-    project_id: number;
-    project_name: string;
-    description?: string;
-    project_status: string;
-    created_at: string;
-    updated_at: string;
-}
-
-interface PaginationInfo {
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
-    from: number;
-    to: number;
-}
-
-interface ProjectsResponse {
-    projects: Project[];
-    pagination: PaginationInfo;
 }
 
 export default function MainContent({ activeTab }: MainContentProps) {

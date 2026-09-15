@@ -2,15 +2,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiFetch } from '@/lib/api';
-
-interface Project {
-  project_id: number;
-  project_name: string;
-  description?: string;
-  project_status: string;
-  created_at: string;
-  updated_at: string;
-}
+import type { Project, ProjectResponse } from '@/types/warikan';
 
 const PROJECT_STATUSES = [
   { value: 'draft', label: '下書き' },
@@ -47,7 +39,7 @@ export default function ProjectEdit() {
       setLoading(true);
       setError(null);
       
-      const response = await apiFetch<{ project: Project }>(`/api/projects/${projectId}`);
+      const response = await apiFetch<ProjectResponse>(`/api/projects/${projectId}`);
       const projectData = response.project;
       setProject(projectData);
       

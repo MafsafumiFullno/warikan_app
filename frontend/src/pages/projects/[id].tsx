@@ -5,55 +5,7 @@ import { apiFetch } from '@/lib/api';
 import AccountingModal from '@/components/AccountingModal';
 import EditAccountingModal from '@/components/EditAccountingModal';
 import MembersList from '@/components/MembersList';
-
-interface Project {
-  project_id: number;
-  project_name: string;
-  description?: string;
-  project_status: string;
-  created_at: string;
-  updated_at: string;
-}
-
-interface ProjectAccess {
-  isOwner: boolean;
-  isMember: boolean;
-}
-
-interface Accounting {
-  task_id: number;
-  project_id: number;
-  project_task_code: number;
-  task_name: string;
-  task_member_name: string;
-  member_id?: number | null;
-  customer_id?: number;
-  accounting_amount: number;
-  accounting_type: string;
-  breakdown?: string;
-  payment_id?: string;
-  memo?: string;
-  target_members?: string[];
-  target_member_ids?: number[];
-  del_flg: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-interface Member {
-  id: number;
-  project_member_id: number;
-  customer_id: number;
-  role: string;
-  role_name: string;
-  split_weight: number;
-  memo?: string;
-  name: string;
-  email?: string;
-  is_guest: boolean;
-  joined_at: string;
-  total_expense: number;
-}
+import type { Accounting, Member, Project, ProjectAccess, ProjectAccessResponse } from '@/types/warikan';
 
 export default function ProjectDetail() {
   const router = useRouter();
@@ -83,7 +35,7 @@ export default function ProjectDetail() {
       setLoading(true);
       setError(null);
       
-      const response = await apiFetch<{ project: Project; isOwner: boolean; isMember: boolean }>(`/api/projects/${projectId}`);
+      const response = await apiFetch<ProjectAccessResponse>(`/api/projects/${projectId}`);
       setProject(response.project);
       setProjectAccess({
         isOwner: response.isOwner,

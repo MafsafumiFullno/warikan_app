@@ -1,20 +1,6 @@
 import { useState } from 'react';
 import { apiFetch } from '@/lib/api';
-
-interface Member {
-  id: number;
-  project_member_id: number;
-  customer_id: number;
-  role: string;
-  role_name: string;
-  split_weight: number;
-  memo?: string;
-  name: string;
-  email?: string;
-  is_guest: boolean;
-  joined_at: string;
-  total_expense: number;
-}
+import type { Member } from '@/types/warikan';
 
 interface AddMemberModalProps {
   isOpen: boolean;

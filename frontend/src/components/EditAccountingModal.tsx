@@ -1,40 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiFetch } from '@/lib/api';
-
-interface Accounting {
-  task_id: number;
-  project_id: number;
-  project_task_code: number;
-  task_name: string;
-  task_member_name: string;
-  member_id?: number | null;
-  customer_id?: number;
-  accounting_amount: number;
-  accounting_type: string;
-  breakdown?: string;
-  payment_id?: string;
-  memo?: string;
-  target_members?: string[];
-  target_member_ids?: number[];
-  del_flg: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-interface Member {
-  id: number;
-  project_member_id: number;
-  customer_id: number;
-  role: string;
-  role_name: string;
-  split_weight: number;
-  memo?: string;
-  name: string;
-  email?: string;
-  is_guest: boolean;
-  joined_at: string;
-  total_expense: number;
-}
+import type { Accounting, Member } from '@/types/warikan';
 
 interface EditAccountingModalProps {
   isOpen: boolean;
