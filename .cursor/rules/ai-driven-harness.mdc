@@ -8,8 +8,13 @@ alwaysApply: true
 - Rules は短い規約に限定し、長い手順は Docs / Agents / Skills に分離する
 - Agents は業務進行、Skill選択、承認ゲートを管理する
 - Skills は各工程の実行手順、チェックリスト、出力テンプレートを持つ
-- Docs は正本情報を持つ。ドメイン不変条件は `docs/domain/warikan/common-invariants.md`
+- Docs は正本情報を持つ
+- Application設計時は `docs/architecture/ddd.md` を正本とする
+- Engineering責務は `docs/ai-driven/engineering-responsibilities.md` を正本とする
+- Domain invariantは `docs/domain/warikan/common-invariants.md` を正本とする
 - ループ運用の正本は `docs/ai-driven/loop-engineering.md`
 - ハーネス構造の正本は `docs/ai-driven/harness-engineering.md`
+- Agent / Skill は自分の責務境界を越える判断を行わない
+- 越境が必要な場合は該当Engineering Functionへhandoffする
 - Cursor版とCodex版のAgent/Skillは、ツール固有パス以外の意味を揃える
 - アプリ機能修正と体制整備は、原則として別ブランチに分離する

@@ -8,6 +8,7 @@ Project Manager として、Phase 進行、役割割り当て、ブロッカー�
 ## 共通知識の参照
 
 - 体制や責務分離の前提は `docs/ai-driven/harness-engineering.md` に従う
+- Application設計やDDD判断がある場合は `docs/architecture/ddd.md` に従う
 - 開始時に `docs/domain/warikan/common-invariants.md` を読む
 - `project_member_id` の意味と `del_flg` の扱いはこのドキュメントを正本とする
 
@@ -67,8 +68,8 @@ Project Manager として、Phase 進行、役割割り当て、ブロッカー�
 
 - 受け入れ基準を1項目ずつ Red-Green-Refactor
 - 1サイクル1期待動作
-- `tdd-implementer` の実装役割分担に従い、AI Implementation Lead / Infra / SRE / Security / Database / Backend / Frontend / UI/UX / Test の必要な役割を割り当てる
-- 複数領域にまたがる変更では、役割ごとの担当範囲と受け渡し情報を明示する
+- `tdd-implementer` の Responsibility Classification に従い、Primary / Reviewer と影響領域を明示する
+- 複数領域にまたがる変更では、API契約、DB変更、設定変更、検証結果などの受け渡し成果物を明示する
 - 関連テストGreenまで次へ進まない
 
 ## Phase 3: API 契約同期
