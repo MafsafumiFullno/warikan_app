@@ -1,28 +1,7 @@
 import { useState, useEffect } from "react";
 import { apiFetch } from "../lib/api";
-
-interface Project {
-    project_id: number;
-    project_name: string;
-    description?: string;
-    project_status: string;
-    created_at: string;
-    updated_at: string;
-}
-
-interface PaginationInfo {
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
-    from: number;
-    to: number;
-}
-
-interface ProjectsResponse {
-    projects: Project[];
-    pagination: PaginationInfo;
-}
+import type { PaginationInfo } from "@/types/api";
+import type { Project, ProjectsResponse } from "@/types/warikan";
 
 export default function ProjectsListComponent() {
     const [projects, setProjects] = useState<Project[]>([]);

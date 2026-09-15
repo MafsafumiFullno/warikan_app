@@ -2,33 +2,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiFetch } from '@/lib/api';
-
-interface SplitCalculationResult {
-  project_id: number;
-  total_amount: number;
-  members: Array<{
-    customer_id: number;
-    member_name: string;
-    split_weight: number;
-    is_owner: boolean;
-    total_paid: number;
-    share_amount: number;
-    balance: number;
-  }>;
-  payment_flow: Array<{
-    from_customer_id: number;
-    from_member_name: string;
-    to_customer_id: number;
-    to_member_name: string;
-    amount: number;
-  }>;
-  calculation_date: string;
-}
-
-interface Project {
-  project_id: number;
-  project_name: string;
-}
+import type { Project, ProjectResponse, SplitCalculationResult } from '@/types/warikan';
 
 export default function SplitResult() {
   const router = useRouter();
@@ -52,7 +26,7 @@ export default function SplitResult() {
       setError(null);
       
       // プロジェクト情報を取得
-      const projectResponse = await apiFetch<{ project: Project }>(`/api/projects/${projectId}`);
+      const projectResponse = await apiFetch<ProjectResponse>(`/api/projects/${projectId}`);
       setProject(projectResponse.project);
       
       // 割り勘計算を実行
