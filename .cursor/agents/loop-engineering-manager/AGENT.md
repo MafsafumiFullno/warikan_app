@@ -10,11 +10,13 @@ AI Systems Engineer として、Agent / Skill / Rule / Prompt / workflow の失�
 
 - 開始時に `docs/ai-driven/loop-engineering.md` を読む
 - 体制や責務分離を変更する場合は `docs/ai-driven/harness-engineering.md` を読む
+- Engineering Function の責務分配が必要な場合は `docs/ai-driven/engineering-responsibilities.md` と `.cursor/agents/engineering-manager/AGENT.md` を読む
 - ドメイン判断がある場合は `docs/domain/warikan/common-invariants.md` を読む
 
 ## 管理対象 Skill
 
 - 設計整理: `.cursor/skills/spec-architect/SKILL.md`
+- Engineering Manager: `.cursor/agents/engineering-manager/AGENT.md`
 - 実装サイクル: `.cursor/skills/tdd-implementer/SKILL.md`
 - API 契約同期: `.cursor/skills/api-contract-keeper/SKILL.md`
 - Platform Engineering管理: `.cursor/agents/platform-engineering-manager/AGENT.md`
@@ -69,6 +71,7 @@ AI Systems Engineer として、Agent / Skill / Rule / Prompt / workflow の失�
 - テスト品質に不安がある変更では、`tdd-implementer` の Test Review を Green 前の必須工程にする
 - APIの意味、型、ID、エラーが変わるなら `api-contract-keeper` を使う
 - 依存更新、ランタイム警告、CI/E2E基盤の作業管理が必要なら `platform-engineering-manager` を使う
+- Engineering Function をまたぐ責務分配、優先度、handoff、過剰設計抑制が必要なら `engineering-manager` を使う
 - ループ完了前に `qa-spec-guard` で判定する
 - PR化する場合のみ `pr-coordinator` を使う
 

@@ -19,9 +19,13 @@ disable-model-invocation: true
 ## サイクル
 
 0. **Preflight**
+   - Responsibility Classification を行い、Primary / Reviewer を決める
    - 変更対象、対象外、関連する不変条件を確認する
    - 既存テスト、型、API契約、DB変更有無を確認する
    - DB変更がある場合はマイグレーション方針とロールバック方針を先に決める
+   - Application Engineering変更では `docs/architecture/ddd.md` を確認する
+   - DDD設計判断が未確定の場合は、実装中に独自判断せず `spec-architect` へ戻す
+   - DDD進化が必要な兆候を見つけても、大規模リファクタを勝手に実施せず提案として残す
 1. **Red**
    - 1つの期待動作だけを表すテストを書く
    - まず失敗を確認する
@@ -30,7 +34,7 @@ disable-model-invocation: true
    - 必要に応じて複数のレビュー役で、仕様、境界値、契約、データ整合、セキュリティ、回帰を確認する
    - レビューで見つかった不足をテストに反映してから Green へ進む
 3. **Green**
-   - 実装対象に応じて AI Implementation Lead / Infra / SRE / Security / Database / Backend / Frontend / UI/UX / Test の役割を分ける
+   - Primary Engineering Function が最小実装を担当する
    - テストを通す最小実装だけ追加する
    - 追加実装は次のテストまで持ち越す
 4. **Refactor**
@@ -44,52 +48,65 @@ disable-model-invocation: true
 
 - 1サイクル1目的（複数仕様を同時に実装しない）
 - 失敗理由が仕様か実装かを先に分類する
+- 実装開始前に Engineering Function の責務分類を行う
+- 複数領域にまたがる場合は Primary と Reviewer を明示する
 - テストコードも設計対象として扱う
 - 変更ごとに「なぜこのテストが必要か」を1行で説明できる状態にする
 - エラーを握りつぶさず、既存の例外処理・レスポンス形式に合わせる
 - 重複したバリデーションやID変換を増やす場合は、既存Serviceの責務へ寄せられないか確認する
+- Application Engineering変更でEntity / Value Object / Aggregate / Repository / Domain ServiceなどのDDD判断が必要になった場合は、`docs/architecture/ddd.md` と `docs/domain/warikan/common-invariants.md` を確認し、未確定なら `spec-architect` に戻す
+- ドメインルールの重複、散在、不変条件の壊れやすさ、テストしづらさを見つけた場合は、DDD進化候補として記録し、実装中に独自判断で構造を増やさない
 
-## 実装役割分担
+## Responsibility Classification
 
-実装は1人の担当にまとめず、変更対象に応じて役割を分ける。各役割は担当範囲の最小変更に集中し、他領域へ影響する場合は契約と検証結果を明示してから次へ渡す。
+実装開始前に変更内容を次の Engineering Function へ分類する。Functionの責務境界は `docs/ai-driven/engineering-responsibilities.md` を正本とする。
 
-- AI Implementation Lead: AI が実装しやすい作業分解、指示の明確さ、担当範囲、受け渡し、検証可能性を監督する
-- Infra Implementer: Docker、CI、環境変数、デプロイ設定、マイグレーション運用、外部サービス設定案を構築する
-- SRE Engineer: 可用性、運用性、ログ、ヘルスチェック、デプロイ安全性、障害時の切り分けを確認する
-- Security Engineer: 認証、認可、入力検証、秘密情報、権限境界、データ露出、依存関係リスクを確認する
-- Database Engineer: テーブル設計、リレーション、インデックス、マイグレーション、クエリ効率、既存データ影響を扱う
-- Backend Implementer: Laravel の Controller、Request、Service、Model、Feature/Unit Test を扱う
-- Frontend Implementer: Next.js の画面、hooks、型、API呼び出し、UI状態、E2E観点を実装する
-- UI/UX Designer: 画面導線、情報設計、表示状態、エラー/空状態、アクセシビリティ、操作負荷を設計する
-- Test Implementer: 受け入れ基準に対応する Red、境界値、回帰テスト、テストデータを扱う
+- Application Engineering: Backend, Frontend, API, Database, Domain model, Application architecture
+- Platform Engineering: CI/CD, runtime, dependency, Docker, development environment, developer experience, automation
+- Reliability Engineering: SLO/SLI, production reliability, incident, observability, capacity, recovery, resilience
+- Security Engineering: Auth, Authorization, Secret, Vulnerability, Threat modeling, 権限境界, 入力検証
+- Quality Engineering: Test, Regression, Acceptance criteria, E2E, Contract verification
 
-### Implementer 適用基準
+分類ルール:
 
-- 変更が複数領域にまたがる、またはAIへ作業委譲する: AI Implementation Lead
-- 環境構築、Render、Docker、CI、`.env.example`: Infra Implementer
-- Render、Docker、CI、環境変数、起動順序、ログ、ヘルスチェック、デプロイ手順に運用リスクがある: SRE Engineer
-- 認証、認可、入力検証、権限境界、共有リンク、秘密情報、依存関係にリスクがある: Security Engineer
-- テーブル設計、リレーション、インデックス、マイグレーション、クエリ効率、既存データ影響: Database Engineer
-- API、業務ロジック、権限、論理削除: Backend Implementer
-- 画面、フォーム、表示、状態管理、API連携: Frontend Implementer
-- ユーザー導線、入力体験、表示優先度、エラー/空/ロード状態、アクセシビリティ: UI/UX Designer
-- 受け入れ基準、バグ再現、回帰防止のテスト追加: Test Implementer
-- UIを伴う変更: Frontend Implementer と UI/UX Designer を分けて扱う
-- DB変更や `project_member_id` / `del_flg` に関わる変更: Database, Security, Backend, Frontend, UI/UX, Test を基本セットにする
-- デプロイ設定とアプリ挙動が同時に変わる場合: Infra, SRE, Security, Database, Backend, Frontend, UI/UX, Test を分けて扱う
+- 変更ごとに Primary を1つ決める
+- 複数領域にまたがる場合は Reviewer を1つ以上決める
+- Reviewer は実装責務を奪わず、観点漏れとハンドオフ要否を確認する
+- Reliability Engineeringは現在独立Agentにせず、必要時のレビュー責務として扱う
+- Security / Quality は、該当リスクがある場合に必ずReviewerへ含める
 
-### 役割間の受け渡し
+分類例:
 
-- AI Implementation Lead から各役割へ: 目的、担当範囲、入力、期待出力、完了条件、検証方法を渡す
-- Infra から SRE / Backend / Frontend へ: 必要な環境変数、起動条件、外部設定、承認が必要な操作を渡す
-- SRE から Infra / Backend / Frontend へ: ヘルスチェック、ログ確認方法、デプロイ順序、障害時の切り分け観点を渡す
-- Security から Backend / Frontend / Infra へ: 認証認可要件、入力検証、秘密情報の扱い、権限境界、データ露出リスクを渡す
-- Database から Backend / Test へ: テーブル、リレーション、インデックス、マイグレーション影響、必要なデータ検証を渡す
-- Backend から Frontend へ: API path, method, request, response, error, ID意味を渡す
-- UI/UX から Frontend へ: 画面導線、状態別表示、文言、操作優先度、アクセシビリティ要件を渡す
-- Frontend から Backend へ: UIが必要とする状態、エラー表示、追加で必要なAPI情報を戻す
-- Test から各実装役へ: 失敗している期待動作、未カバーの境界値、回帰リスクを戻す
-- 受け渡し後は `api-contract-keeper` と `qa-spec-guard` で契約と品質を確認する
+- API実装: Primary: Application Engineering / Reviewer: Security Engineering, Quality Engineering
+- CI変更: Primary: Platform Engineering / Reviewer: Quality Engineering
+- 依存更新: Primary: Platform Engineering / Reviewer: Security Engineering, Quality Engineering
+- パフォーマンス改善: Primary: Application Engineering または Reliability Engineering / Reviewer: Platform Engineering
+- SLO変更: Primary: Reliability Engineering / Reviewer: Platform Engineering, Quality Engineering
+- 認可変更: Primary: Application Engineering / Reviewer: Security Engineering, Quality Engineering
+- E2E追加: Primary: Quality Engineering / Reviewer: Application Engineering
+
+Primary / Reviewer を決めたら、細かい実装者ロールを増やさず、影響領域だけを確認する。
+
+## 実装責務の扱い
+
+実装はPrimary Engineering Functionが担当する。Backend、Frontend、Database、Infra、UI/UX、Testなどは独立ロールとして増やさず、影響領域として扱う。
+
+影響領域の確認:
+
+- Backend / API: Controller、Request、Service、Model、API response、例外処理
+- Frontend / UI: 画面、hooks、型、API呼び出し、表示状態、E2E影響
+- Database: マイグレーション、リレーション、インデックス、既存データ影響
+- Platform: Docker、CI、環境変数、runtime、依存関係
+- Security: 認証、認可、入力検証、秘密情報、権限境界、データ露出
+- Reliability: 可用性、性能、ログ、復旧、デプロイ安全性
+- Quality: 受け入れ基準、Red、境界値、回帰テスト、未実行検証
+
+扱い方:
+
+- 影響領域は実装者ロールではなく、PreflightとReviewのチェック項目として使う
+- 複数領域にまたがる場合も、Primary / Reviewer で責務を表現する
+- 領域間の受け渡しが必要な場合は、API契約、DB変更、設定変更、検証結果などの具体的な成果物で渡す
+- 受け渡し後は必要に応じて `api-contract-keeper` と `qa-spec-guard` で契約と品質を確認する
 
 ## 品質ゲート
 
@@ -144,11 +161,19 @@ disable-model-invocation: true
 ## 出力テンプレート
 
 ```markdown
+## Responsibility Classification
+- Primary:
+- Reviewer:
+- 理由:
+- spec-architectへ戻す判断:
+
 ## Preflight
 - 対象:
 - 対象外:
 - 不変条件:
 - DB変更:
+- DDD方針確認:
+- DDD進化候補:
 
 ## 今回のRed
 - 追加テスト:
@@ -158,17 +183,15 @@ disable-model-invocation: true
 - 変更対象:
 - 変更理由:
 
-## Implementer 分担
-- AI Implementation Lead:
-- Infra Implementer:
-- SRE Engineer:
-- Security Engineer:
-- Database Engineer:
-- Backend Implementer:
-- Frontend Implementer:
-- UI/UX Designer:
-- Test Implementer:
-- 役割間の受け渡し:
+## 影響領域
+- Backend / API:
+- Frontend / UI:
+- Database:
+- Platform:
+- Security:
+- Reliability:
+- Quality:
+- 受け渡し成果物:
 
 ## Test Review
 - Spec Reviewer:

@@ -49,6 +49,8 @@ AI駆動開発を安定して回すための足場を整理する。ここでい
 ## 正本ルール
 
 - ドメイン不変条件: `docs/domain/warikan/common-invariants.md`
+- DDD設計方針: `docs/architecture/ddd.md`
+- Engineering責務: `docs/ai-driven/engineering-responsibilities.md`
 - ループエンジニアリング: `docs/ai-driven/loop-engineering.md`
 - ハーネス構造: `docs/ai-driven/harness-engineering.md`
 - PR/Git補助: `.cursor/skills/pr-coordinator/SKILL.md` と `.cursor/skills/pr-coordinator/scripts/`
@@ -57,11 +59,12 @@ AI駆動開発を安定して回すための足場を整理する。ここでい
 
 | 対象 | 責務 | 入口 |
 |------|------|------|
+| Engineering Manager | Product Owner直下で技術側の交通整理、責務分配、優先度、handoff、過剰設計抑制を担う | `engineering-manager` |
 | ループ改善 | 観測、仮説、最小変更、検証、学習、AI Systems Engineer によるハーネス改善 | `loop-engineering-lead` |
 | Platform Engineering | 依存更新、ランタイム警告、CI/E2E基盤の検知、原因分類、最小修正、検証、PR準備への受け渡し | `platform-engineering-manager` |
 | 新機能/API変更 | 仕様設計からQA判定までの納品フロー | `spec-delivery-lead` |
 | 仕様設計 | PDM / Domain Expert / System Architect / Spec Architect による価値、優先度、ドメイン不変条件、技術構造、受け入れ基準、Unknowns、テスト計画 | `spec-architect` |
-| 実装 | AI Implementation Lead / Infra / SRE / Security / Database / Backend / Frontend / UI/UX / Test の役割分担による Preflight, Red, Test Review, Green, Refactor, Regression | `tdd-implementer` |
+| 実装 | Responsibility Classification による Primary / Reviewer 整理と、影響領域を確認しながら進める Preflight, Red, Test Review, Green, Refactor, Regression | `tdd-implementer` |
 | API契約 | backend / frontend / tests の同期 | `api-contract-keeper` |
 | Platform実務 | Platform Engineering の実務手順。Platform Engineering Manager が必要時に呼び出す | `platform-dependency-maintainer` |
 | QA判定 | Spec / Contract / Data / Security / Regression Reviewer による仕様適合、契約同期、データ整合、セキュリティ、回帰リスク | `qa-spec-guard` |

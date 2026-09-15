@@ -40,6 +40,10 @@ QA 判定は1人の総合判定ではなく、必要な観点を役割分割し�
    - 認証、認可、入力検証、権限境界が仕様どおりか
    - 秘密情報、環境変数、共有リンク、削除済みデータが不要に露出しないか
    - 依存関係、ログ、エラーレスポンスに機微情報が含まれないか
+6. Reliability Reviewer
+   - production reliability、availability、performance、incident/recovery、capacity、resilience に影響する変更か
+   - SLO / SLI や observability を新たに定義・変更する必要があるか
+   - 現在の `warikan_app` 規模で必要なレビュー観点に絞り、独立したReliability SkillやAgentを前提にしない
 
 ## Reviewer 適用基準
 
@@ -50,6 +54,29 @@ QA 判定は1人の総合判定ではなく、必要な観点を役割分割し�
 - `project_member_id` / `del_flg` に関わる変更: Spec, Contract, Data, Security, Regression Reviewer
 - マイグレーションを伴う変更: Data Reviewer を必須にする
 - 主要ユーザーフロー、認証、画面遷移に関わる変更: Regression Reviewer を必須にする
+- Runtime、Docker、CI/CD、本番設定、デプロイ手順に影響する変更: Reliability Reviewer を必要に応じて含める
+- 重いクエリ、N+1、集計処理、割り勘計算など性能劣化の可能性がある変更: Reliability Reviewer を必要に応じて含める
+- SLO / SLI、observability、incident/recovery、capacity、resilience を明示的に扱う変更: Reliability Reviewer を必須にする
+
+## Reliability Review Checklist
+
+Reliability Review は専用Skillを新設せず、このSkill内の必要時レビューとして扱う。現時点の `warikan_app` では、AWS本番環境、Observability基盤、SLO/SLI運用、Incident対応が本格化するまでは、過剰なReliability設計を求めない。
+
+確認する観点:
+
+- Availability: 主要APIや画面導線が失敗時に過度に止まらないか
+- Performance: N+1、不要な全件取得、重い集計、過剰なE2E/CI時間増加がないか
+- Observability: 失敗時に原因を追える最低限のログやエラー情報があるか
+- Incident / Recovery: デプロイ失敗、マイグレーション失敗、設定ミス時の戻し方が説明できるか
+- Capacity: データ件数増加で明らかに破綻する処理を追加していないか
+- Resilience: 外部サービス、DB、認証、共有リンク、Runtime設定の失敗がユーザー影響として整理されているか
+- SLO / SLI: 現時点で新規定義が必要か。必要ない場合は「現時点では不要」と明記する
+
+Reliability Review を適用しない例:
+
+- 表示文言や静的UIの軽微な変更
+- 単純なCRUDで性能、復旧、本番設定に影響しない変更
+- テストやドキュメントのみで本番動作に影響しない変更
 
 ## E2E 実行基準
 
@@ -90,6 +117,7 @@ cd frontend && npm run e2e
 - Data Reviewer:
 - Regression Reviewer:
 - Security Reviewer:
+- Reliability Reviewer:
 
 ## 検出事項
 - Critical:
