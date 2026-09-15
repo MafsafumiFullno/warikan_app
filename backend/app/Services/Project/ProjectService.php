@@ -22,8 +22,14 @@ class ProjectService extends BaseService
     public function getProjectsForCustomer($customerId, array $filters = []): array
     {
         $query = Project::query()
-            ->where('customer_id', $customerId)
             ->where('del_flg', false)
+            ->where(function ($q) use ($customerId) {
+                $q->where('customer_id', $customerId)
+                  ->orWhereHas('projectMembers', function ($memberQuery) use ($customerId) {
+                      $memberQuery->where('customer_id', $customerId)
+                                  ->where('del_flg', false);
+                  });
+            })
             ->orderByDesc('created_at');
 
         // ステータスフィルター

@@ -301,6 +301,88 @@ class ProjectServiceTest extends TestCase
     }
 
     /**
+     * 参加メンバーとしてアクセス可能なプロジェクトが含まれること
+     */
+    public function test_getProjectsForCustomer_includes_member_projects(): void
+    {
+        $owner = $this->createCustomer();
+        $member = $this->createCustomer();
+
+        $ownedProject = $this->createProject($member->customer_id, [
+            'project_name' => '自分のプロジェクト',
+            'created_at' => now()->subDays(2),
+        ]);
+
+        $participatingProject = $this->createProject($owner->customer_id, [
+            'project_name' => '参加中プロジェクト',
+            'created_at' => now()->subDay(),
+        ]);
+
+        $this->createProjectMember($participatingProject->project_id, [
+            'project_member_id' => 2,
+            'customer_id' => $member->customer_id,
+            'del_flg' => false,
+        ]);
+
+        $result = $this->projectService->getProjectsForCustomer($member->customer_id);
+        $projectIds = collect($result['projects'])->pluck('project_id')->all();
+
+        $this->assertSame(2, $result['pagination']['total']);
+        $this->assertSame([
+            $participatingProject->project_id,
+            $ownedProject->project_id,
+        ], $projectIds);
+    }
+
+    /**
+     * 論理削除済みメンバーとしての参加プロジェクトが除外されること
+     */
+    public function test_getProjectsForCustomer_excludes_deleted_member_projects(): void
+    {
+        $owner = $this->createCustomer();
+        $member = $this->createCustomer();
+
+        $project = $this->createProject($owner->customer_id, [
+            'project_name' => '削除済み参加プロジェクト',
+        ]);
+
+        $this->createProjectMember($project->project_id, [
+            'project_member_id' => 2,
+            'customer_id' => $member->customer_id,
+            'del_flg' => true,
+        ]);
+
+        $result = $this->projectService->getProjectsForCustomer($member->customer_id);
+
+        $this->assertCount(0, $result['projects']);
+        $this->assertEquals(0, $result['pagination']['total']);
+    }
+
+    /**
+     * 所有者がProjectMemberにも登録されている場合に重複表示されないこと
+     */
+    public function test_getProjectsForCustomer_does_not_duplicate_owned_member_project(): void
+    {
+        $customer = $this->createCustomer();
+
+        $project = $this->createProject($customer->customer_id, [
+            'project_name' => '所有かつ参加プロジェクト',
+        ]);
+
+        $this->createProjectMember($project->project_id, [
+            'project_member_id' => 1,
+            'customer_id' => $customer->customer_id,
+            'del_flg' => false,
+        ]);
+
+        $result = $this->projectService->getProjectsForCustomer($customer->customer_id);
+
+        $this->assertCount(1, $result['projects']);
+        $this->assertEquals(1, $result['pagination']['total']);
+        $this->assertEquals($project->project_id, $result['projects'][0]->project_id);
+    }
+
+    /**
      * プロジェクトが0件の場合に空の配列が返されること
      */
     public function test_getProjectsForCustomer_returns_empty_when_no_projects(): void
