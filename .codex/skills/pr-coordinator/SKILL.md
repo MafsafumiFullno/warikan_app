@@ -56,8 +56,9 @@ PR関連の補助スクリプトは、CursorのSkill構成に合わせて `.curs
 10. push/PR作成前に、依頼者へ以下を提示して承認を得る:
    - 反映資産: push対象のコミット・ファイル
    - PR内容: タイトル、概要、変更点、テスト、レビュー観点、特記事項
-11. PR本文は `.github/pull_request_template.md` の項目を省略せず、対象外の場合も `なし` または `対象外` と明記する。
-12. 承認後、PRは以下で作成する:
+11. Issue対応PRは、PRタイトルとPR本文を日本語で作成する。
+12. PR本文は `.github/pull_request_template.md` の項目を省略せず、対象外の場合も `なし` または `対象外` と明記する。
+13. 承認後、PRは以下で作成する:
    - `APPROVED_ASSETS=1 APPROVED_PR=1 bash .cursor/skills/pr-coordinator/scripts/create-pr.sh "PR title"`
 
 ## コミット対象承認の提示形式
