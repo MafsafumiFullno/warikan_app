@@ -4,6 +4,7 @@ export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 const MUTATING_METHODS = new Set<HttpMethod>(['POST', 'PUT', 'PATCH', 'DELETE']);
 
+// CSRFトークンはセッション単位で再利用し、更新系リクエストごとの余分な取得を避ける。
 let cachedCsrfToken: string | null = null;
 let csrfTokenRequest: Promise<string | null> | null = null;
 
@@ -48,6 +49,7 @@ async function getCsrfToken(forceRefresh = false): Promise<string | null> {
     csrfTokenRequest = null;
   }
 
+  // 同時に複数の更新系リクエストが走っても、CSRF取得は1回にまとめる。
   csrfTokenRequest ??= fetchCsrfToken();
 
   const token = await csrfTokenRequest;
@@ -110,6 +112,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   let csrfToken = isMutatingMethod(method) ? await getCsrfToken() : null;
   let res = await request<T>(path, options, csrfToken);
 
+  // LaravelのCSRFトークン期限切れに備え、419の場合だけ再取得して1回だけ再送する。
   if (res.status === 419 && isMutatingMethod(method)) {
     csrfToken = await getCsrfToken(true);
     res = await request<T>(path, options, csrfToken);
