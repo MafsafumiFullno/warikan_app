@@ -21,7 +21,8 @@ function isMutatingMethod(method: HttpMethod): boolean {
   return MUTATING_METHODS.has(method);
 }
 
-async function fetchCsrfToken(): Promise<string | null> {
+// バックエンドから新しいCSRFトークンを取得する。キャッシュ判断は呼び出し側で行う。
+async function fetchFreshCsrfToken(): Promise<string | null> {
   try {
     const csrfResponse = await fetch(`${API_BASE_URL}/api/csrf-token`, {
       credentials: 'include',
@@ -39,7 +40,8 @@ async function fetchCsrfToken(): Promise<string | null> {
   }
 }
 
-async function getCsrfToken(forceRefresh = false): Promise<string | null> {
+// 更新系リクエストで利用するCSRFトークンを返す。必要な場合だけ再取得する。
+async function getCachedCsrfToken(forceRefresh = false): Promise<string | null> {
   if (!forceRefresh && cachedCsrfToken) {
     return cachedCsrfToken;
   }
@@ -50,7 +52,7 @@ async function getCsrfToken(forceRefresh = false): Promise<string | null> {
   }
 
   // 同時に複数の更新系リクエストが走っても、CSRF取得は1回にまとめる。
-  csrfTokenRequest ??= fetchCsrfToken();
+  csrfTokenRequest ??= fetchFreshCsrfToken();
 
   const token = await csrfTokenRequest;
   csrfTokenRequest = null;
@@ -59,7 +61,8 @@ async function getCsrfToken(forceRefresh = false): Promise<string | null> {
   return token;
 }
 
-function buildHeaders(options: RequestInit, csrfToken: string | null): Headers {
+// 呼び出し側のヘッダーを尊重しつつ、API共通のJSON/CSRF/認証ヘッダーを補う。
+function buildApiHeaders(options: RequestInit, csrfToken: string | null): Headers {
   const token = getAuthToken();
   const headers = new Headers(options.headers);
 
@@ -78,15 +81,17 @@ function buildHeaders(options: RequestInit, csrfToken: string | null): Headers {
   return headers;
 }
 
-async function request<T>(path: string, options: RequestInit, csrfToken: string | null): Promise<Response> {
+// apiFetch本体から使う低レベルなfetch実行。レスポンス解釈やリトライはここでは行わない。
+async function sendApiRequest(path: string, options: RequestInit, csrfToken: string | null): Promise<Response> {
   return fetch(`${API_BASE_URL}${path}`, {
     ...options,
-    headers: buildHeaders(options, csrfToken),
+    headers: buildApiHeaders(options, csrfToken),
     credentials: 'include',
   });
 }
 
-async function parseApiError(res: Response, path: string): Promise<Error> {
+// APIのエラーレスポンスを利用者に見せるErrorへ変換する。
+async function buildApiError(res: Response, path: string): Promise<Error> {
   let detail: any = undefined;
   try {
     const text = await res.text();
@@ -109,17 +114,17 @@ async function parseApiError(res: Response, path: string): Promise<Error> {
 
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const method = normalizeMethod(options.method);
-  let csrfToken = isMutatingMethod(method) ? await getCsrfToken() : null;
-  let res = await request<T>(path, options, csrfToken);
+  let csrfToken = isMutatingMethod(method) ? await getCachedCsrfToken() : null;
+  let res = await sendApiRequest(path, options, csrfToken);
 
   // LaravelのCSRFトークン期限切れに備え、419の場合だけ再取得して1回だけ再送する。
   if (res.status === 419 && isMutatingMethod(method)) {
-    csrfToken = await getCsrfToken(true);
-    res = await request<T>(path, options, csrfToken);
+    csrfToken = await getCachedCsrfToken(true);
+    res = await sendApiRequest(path, options, csrfToken);
   }
 
   if (!res.ok) {
-    throw await parseApiError(res, path);
+    throw await buildApiError(res, path);
   }
 
   // 204 No Content の場合
