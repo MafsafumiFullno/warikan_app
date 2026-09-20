@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { apiFetch } from '@/lib/api';
 import AddMemberModal from './AddMemberModal';
 import type { Member } from '@/types/warikan';
+import ConfirmationDialog from './ConfirmationDialog';
 
 interface MembersListProps {
   projectId: number;
@@ -26,6 +27,9 @@ export default function MembersList({
   const [weightValue, setWeightValue] = useState<string>('');
   const [editingMemo, setEditingMemo] = useState<number | null>(null);
   const [memoValue, setMemoValue] = useState<string>('');
+  const [memberToRemove, setMemberToRemove] = useState<Member | null>(null);
+  const [isRemoving, setIsRemoving] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchMembers();
@@ -56,16 +60,21 @@ export default function MembersList({
 
   const handleMemberRemoved = async (memberId: number) => {
     try {
+      setIsRemoving(true);
+      setActionError(null);
       await apiFetch(`/api/projects/${projectId}/members/${memberId}`, {
         method: 'DELETE',
       });
       
       setMembers(prev => prev.filter(member => member.project_member_id !== memberId));
       onMemberRemoved?.(memberId);
+      setMemberToRemove(null);
       
     } catch (err: any) {
       console.error('メンバー削除エラー:', err);
-      alert('メンバーの削除に失敗しました');
+      setActionError(err.message || 'メンバーの削除に失敗しました');
+    } finally {
+      setIsRemoving(false);
     }
   };
 
@@ -92,7 +101,7 @@ export default function MembersList({
       
     } catch (err: any) {
       console.error('割り勘比重更新エラー:', err);
-      alert('割り勘比重の更新に失敗しました');
+      setActionError(err.message || '割り勘比重の更新に失敗しました');
     }
   };
 
@@ -129,7 +138,7 @@ export default function MembersList({
       
     } catch (err: any) {
       console.error('メモ更新エラー:', err);
-      alert('メモの更新に失敗しました');
+      setActionError(err.message || 'メモの更新に失敗しました');
     }
   };
 
@@ -207,6 +216,19 @@ export default function MembersList({
         </div>
       </div>
       <div className="px-6 py-4">
+        {actionError && (
+          <div role="alert" className="mb-4 flex items-start justify-between rounded border border-red-300 bg-red-50 px-4 py-3 text-red-700">
+            <p className="text-sm">{actionError}</p>
+            <button
+              type="button"
+              onClick={() => setActionError(null)}
+              className="ml-4 text-sm font-medium text-red-700 hover:text-red-900"
+              aria-label="エラーを閉じる"
+            >
+              閉じる
+            </button>
+          </div>
+        )}
         {members.length === 0 ? (
           <div className="text-center text-gray-500 py-8">
             <div className="text-4xl mb-4">👥</div>
@@ -332,9 +354,8 @@ export default function MembersList({
                 {isOwner && member.role !== 'owner' && (
                   <button
                     onClick={() => {
-                      if (confirm(`${member.name}をメンバーから削除しますか？`)) {
-                        handleMemberRemoved(member.project_member_id);
-                      }
+                      setActionError(null);
+                      setMemberToRemove(member);
                     }}
                     className="text-red-600 hover:text-red-800 text-sm font-medium"
                   >
@@ -353,6 +374,18 @@ export default function MembersList({
         onClose={() => setShowAddForm(false)}
         projectId={projectId}
         onMemberAdded={handleMemberAdded}
+      />
+
+      <ConfirmationDialog
+        isOpen={memberToRemove !== null}
+        title="メンバーを削除"
+        message={memberToRemove ? `${memberToRemove.name}をメンバーから削除しますか？` : ''}
+        confirmLabel="削除する"
+        isPending={isRemoving}
+        onCancel={() => setMemberToRemove(null)}
+        onConfirm={() => {
+          if (memberToRemove) handleMemberRemoved(memberToRemove.project_member_id);
+        }}
       />
     </div>
   );
