@@ -220,7 +220,7 @@ warikan_app/
 - runtime 依存の semver minor と semver major は人間レビューを必須にする
 - 自動マージは GitHub の required checks が設定され、CI が成功することを前提にする
 - CI が失敗した依存PRは自動マージせず、原因を解消してから再実行する
-- Backend CI は PHP 8.2 / 8.4 / 8.5 で `composer test` を必須実行する
+- Backend CI は PHP 8.2.35 / 8.3.36 / 8.4.27 / 8.5.12 で `composer test` を必須実行する。セキュリティ基準と再デプロイ手順は `docs/php-security-2026-10.md` を参照する
 - PHP 8.5 など新しい実行環境で依存パッケージ由来の非推奨警告が先行して出る場合、テストコマンド側で一時的に隔離する
 - アプリコード由来の警告は抑制対象にせず、最小PRで修正してからテストを通す
 - Laravel / PHP のバージョン引き上げは、Dependabot PR と CI 結果を確認し、互換性修正をまとめた専用PRで行う
