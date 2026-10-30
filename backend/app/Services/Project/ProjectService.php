@@ -196,7 +196,7 @@ class ProjectService extends BaseService
             ->exists();
         
         if (!$exists) {
-            throw new \Exception('無効な割り勘方法IDです。');
+            throw \Illuminate\Validation\ValidationException::withMessages(['split_method_id' => ['無効な割り勘方法IDです。']]);
         }
     }
 

@@ -157,7 +157,7 @@ class ProjectMemberService extends BaseService
         }
 
         if ($existingMember) {
-            throw new \Exception('このメンバーは既に追加されています');
+            throw new \App\Exceptions\ConflictException('このメンバーは既に追加されています');
         }
     }
 
@@ -225,7 +225,7 @@ class ProjectMemberService extends BaseService
                                      ->first();
 
         if (!$projectMember) {
-            throw new \Exception('メンバーが見つかりません');
+            throw new \App\Exceptions\NotFoundException('メンバーが見つかりません');
         }
 
         return $projectMember;
@@ -242,7 +242,7 @@ class ProjectMemberService extends BaseService
                                      ->first();
 
         if (!$projectMember) {
-            throw new \Exception('メンバーが見つかりません');
+            throw new \App\Exceptions\NotFoundException('メンバーが見つかりません');
         }
 
         return $projectMember;

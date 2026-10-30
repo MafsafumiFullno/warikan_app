@@ -168,7 +168,7 @@ class ProjectTaskService extends BaseService
             ->first();
         
         if (!$projectTask) {
-            throw new \Exception('会計が見つかりません');
+            throw new \App\Exceptions\NotFoundException('会計が見つかりません');
         }
 
         return $projectTask;
@@ -402,7 +402,7 @@ class ProjectTaskService extends BaseService
                 ->first();
 
             if (!$member) {
-                throw new \Exception('対象メンバーが見つかりません');
+                throw new \App\Exceptions\NotFoundException('対象メンバーが見つかりません');
             }
 
             $internalIds[] = $member->id;
