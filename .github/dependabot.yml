@@ -44,6 +44,9 @@ updates:
           - "react-dom"
       frontend-tooling:
         dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
         patterns:
           - "@types/*"
           - "eslint*"
