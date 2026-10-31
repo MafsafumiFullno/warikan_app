@@ -19,7 +19,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        php: ["8.2", "8.4", "8.5"]
+        php: ["8.2.35", "8.3.36", "8.4.27", "8.5.12"]
     defaults:
       run:
         working-directory: backend
@@ -32,6 +32,7 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           coverage: none
+          ini-values: session.upload_progress.enabled=0
       - name: Cache composer
         uses: actions/cache@v6
         with:
@@ -58,7 +59,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: "20"
+          node-version-file: frontend/.nvmrc
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - name: Install dependencies
@@ -81,7 +82,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: "20"
+          node-version-file: frontend/.nvmrc
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - name: Install dependencies
@@ -96,7 +97,7 @@ jobs:
         run: npm run e2e
       - name: Upload Playwright report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report-${{ runner.os }}
           path: frontend/playwright-report/

@@ -1,4 +1,6 @@
-FROM php:8.3-fpm
+FROM php:8.3.36-fpm
+
+COPY php-security.ini /usr/local/etc/php/conf.d/zz-security.ini
 
 # 必要なものをインストール
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -25,4 +27,3 @@ RUN set -eux; \
     echo "xdebug.client_port=9003" >> /usr/local/etc/php/conf.d/xdebug.ini; \
     echo "xdebug.start_with_request=yes" >> /usr/local/etc/php/conf.d/xdebug.ini; \
     echo "xdebug.log_level=0" >> /usr/local/etc/php/conf.d/xdebug.ini
-
