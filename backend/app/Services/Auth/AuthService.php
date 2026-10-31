@@ -94,7 +94,7 @@ class AuthService extends BaseService
     {
         // ゲストユーザーでない場合はエラー
         if (!$customer->is_guest) {
-            throw new \InvalidArgumentException('既に会員登録済みです');
+            throw new \App\Exceptions\BadRequestException('既に会員登録済みです');
         }
 
         $validated = $this->validateData($data, [
@@ -183,7 +183,7 @@ class AuthService extends BaseService
         }
 
         if (empty($updateData)) {
-            throw new \InvalidArgumentException('更新するデータがありません');
+            throw new \App\Exceptions\BadRequestException('更新するデータがありません');
         }
 
         $customer->update($updateData);

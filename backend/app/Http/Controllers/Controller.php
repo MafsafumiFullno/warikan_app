@@ -2,50 +2,25 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Responses\ApiErrorResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException;
 use Psr\Log\LoggerInterface;
+use Throwable;
 
 abstract class Controller
 {
-    /**
-     * 共通のエラーハンドリング
-     */
-    protected function handleException(\Exception $e, Request $request, LoggerInterface $logger, string $context = ''): JsonResponse
+    protected function handleException(Throwable $exception, Request $request, LoggerInterface $logger, string $context = ''): JsonResponse
     {
-        $logger->error($context . ($context ? 'エラー: ' : '') . $e->getMessage(), [
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString(),
-            'request_data' => $request->all(),
-            'customer_id' => $request->user()?->customer_id
-        ]);
+        $response = ApiErrorResponse::fromException($exception);
 
-        // バリデーションエラー
-        if ($e instanceof ValidationException) {
-            return response()->json([
-                'message' => 'バリデーションエラー',
-                'errors' => $e->errors()
-            ], 422);
+        if ($response->getStatusCode() >= 500) {
+            $logger->error($context . ($context ? 'エラー: ' : '') . $exception->getMessage(), [
+                'exception' => $exception,
+                'customer_id' => $request->user()?->customer_id,
+            ]);
         }
 
-        // カスタムエラーメッセージに基づくHTTPステータスコードの決定
-        $message = $e->getMessage();
-        $statusCode = 500;
-
-        if (str_contains($message, '見つかりません')) {
-            $statusCode = 404;
-        } elseif (str_contains($message, 'アクセス権限がありません') || str_contains($message, 'オーナー権限がありません')) {
-            $statusCode = 403;
-        } elseif (str_contains($message, '無効な') || str_contains($message, 'バリデーション')) {
-            $statusCode = 422;
-        } elseif (str_contains($message, '既に追加されています')) {
-            $statusCode = 409;
-        }
-
-        return response()->json([
-            'message' => $message,
-            'error' => config('app.debug') ? $e->getMessage() : 'サーバーエラーが発生しました'
-        ], $statusCode);
+        return $response;
     }
 }

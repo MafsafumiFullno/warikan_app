@@ -108,7 +108,7 @@ abstract class BaseService
             ->first();
         
         if (!$project) {
-            throw new \Exception('プロジェクトが見つかりません');
+            throw new \App\Exceptions\NotFoundException('プロジェクトが見つかりません');
         }
 
         // プロジェクトのオーナーまたはメンバーかチェック
@@ -119,7 +119,7 @@ abstract class BaseService
                                 ->exists();
         
         if (!$isOwner && !$isMember) {
-            throw new \Exception('アクセス権限がありません');
+            throw new \App\Exceptions\ForbiddenException('アクセス権限がありません');
         }
 
         return $project;
@@ -135,7 +135,7 @@ abstract class BaseService
             ->first();
         
         if (!$project) {
-            throw new \Exception('プロジェクトが見つかりません');
+            throw new \App\Exceptions\NotFoundException('プロジェクトが見つかりません');
         }
 
         // オーナーロールをチェック
@@ -151,7 +151,7 @@ abstract class BaseService
                                ->exists();
         
         if (!$isOwner && $project->customer_id !== $customerId) {
-            throw new \Exception('オーナー権限がありません');
+            throw new \App\Exceptions\ForbiddenException('オーナー権限がありません');
         }
 
         return $project;
@@ -201,7 +201,7 @@ abstract class BaseService
                                      ->first();
         
         if (!$projectMember) {
-            throw new \Exception('メンバーが見つかりません');
+            throw new \App\Exceptions\NotFoundException('メンバーが見つかりません');
         }
 
         return $projectMember;
@@ -218,7 +218,7 @@ abstract class BaseService
                                      ->first();
         
         if (!$projectMember) {
-            throw new \Exception('メンバーが見つかりません');
+            throw new \App\Exceptions\NotFoundException('メンバーが見つかりません');
         }
 
         return $projectMember;

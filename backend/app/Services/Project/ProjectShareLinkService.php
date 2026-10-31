@@ -50,7 +50,7 @@ class ProjectShareLinkService extends BaseService
             ->first();
 
         if (!$shareLink) {
-            throw new \Exception('共有リンクが見つかりません');
+            throw new \App\Exceptions\NotFoundException('共有リンクが見つかりません');
         }
 
         $project = $shareLink->project()
@@ -58,7 +58,7 @@ class ProjectShareLinkService extends BaseService
             ->first();
 
         if (!$project) {
-            throw new \Exception('共有リンクが見つかりません');
+            throw new \App\Exceptions\NotFoundException('共有リンクが見つかりません');
         }
 
         $members = ProjectMember::where('project_id', $project->project_id)
